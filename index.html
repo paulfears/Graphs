@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>repl.it</title>
+    <link href="style.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+   
+    <canvas width="500" height="500" id="canvas">not supported</canvas>
+    <script src="script.js">
+    </script>
+
+    <br>
+    <label>delay (ms)</label>
+    <input type="number" value="0" id="delay">
+    <br>
+    <button id="reset_button">reset</button>
+    <button id="breadth first">Breadth First Search</button>
+    <script>
+      let checked = [];
+      let current_path = []
+      let breadth_first_button = document.getElementById("breadth first");
+      let reset_button = document.getElementById("reset_button");
+      breadth_first_button.addEventListener('click', breadth_wrapper);
+      reset_button.addEventListener('click', reset);
+      const sleep = (milliseconds) => {
+        return new Promise(resolve => setTimeout(resolve, milliseconds))
+      }
+
+      function getstart(){
+        let start = nodeking.objs.filter((node)=>node.text==="start")[0];
+        if(start){
+          start.text_color = "purple";
+        }
+        return start;
+        
+      }
+
+      function reset(){
+        console.log("here")
+        for(let i =0; i<nodeking.objs.length; i++){
+          let keys = Object.keys(nodeking.objs[i].arrows)
+          for(let j =0; j < keys.length; j++){
+            nodeking['objs'][i]['arrows'][keys[j]]['color'] = "black";
+            console.log(nodeking['objs'][i]['arrows'][keys[j]]['color']);
+          }
+        }
+      }
+
+      function breadth_wrapper(){
+        reset();
+        let delay =  Number(document.getElementById("delay").value);
+        console.log(delay);
+        breadth(delay=delay);
+        
+
+      }
+
+      
+
+      async function breadth(delay = 0){
+        goal = end;
+        start = getstart();
+        if(!start){
+          alert("no starting node");
+        }
+        discovered = [start];
+        
+        visited = []
+        current = start;
+        stacks = {}
+        stacks[current['id']]=[start]
+        paths = {}
+
+        while(true){
+          console.log(delay);
+          await sleep(delay);
+          
+          if(current.text == "end"){
+            current.set_color("black");
+            break;
+          }
+          if(!current.children){
+            continue;
+          }
+          for(child of current.children){
+            if(visited.some(node => node.id ===  child.id) || discovered.some(node => node.id == child.id)){
+              console.log("already visited or discovered");
+            }
+            else{
+              discovered.push(child);
+              
+              temp = [...stacks[current['id']]]
+              temp.push(child)
+              stacks[child['id']] = temp;
+            }
+
+          }
+          
+          old = current;
+          visited.push(discovered.shift());
+
+          current = discovered[0];
+          
+          current.set_color("blue");
+            
+          
+          old.set_color("black");
+          
+        }
+        
+        if(current.text == "end"){
+          console.log(stacks[current.id])
+          for(let i = 0; i<stacks[current.id].length-1; i++){
+            console.log(stacks[current.id][i].arrows[stacks[current.id][i+1].id].color);
+            stacks[current.id][i].arrows[stacks[current.id][i+1].id].color = "red";
+          }
+        }else{
+          alert("no soultion found");
+        }
+
+
+
+        
+
+       
+        console.log(paths);
+        level = 0
+        
+
+
+        
+
+      }
+
+
+
+
+      function log_all_values(){
+        nodeking.objs.map((node)=>console.log(node.value));
+      }
+    </script>
+    <script>
+      let canvas = document.getElementById("canvas");
+      let nodeking = node.init("canvas");
+      let start = new node(100, 100, 40, "start");
+      start = getstart()
+      let end = new node(400, 400, 40, "end");
+      
+    </script>
+  </body>
+</html>
