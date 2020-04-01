@@ -11,16 +11,35 @@ function node(x=false, y=false, r=false, text=""){
     this.value = null;
     this.func = null;
     this.args = [];
-    this.id = node.objs.length;
+    let date = new Date();
+    this.id = date.getTime()+Object.keys(node.objs).length;
+    
     this.delete = function(){
-      i = node.objs.indexOf(this);
-      if(i>=0){
-        node.objs.splice(i, 1);
+      for(let i = node.edges.length-1; i>-1; i--){
+        edge = node.edges[i];
+        if(edge.start === this.id || edge.end === this.id){
+          node.edges.splice(i,1);
+          
+        }
       }
+      
+      node.active = null;
+      let temp_id = this.id;
+      delete node.objs[this.id];
+
+      for(n of Object.values(node.objs)){
+
+        position = n.children.indexOf(temp_id);
+        if(position !== -1){
+          n.children.splice(position, 1);
+        }
+
+      }
+
     }
 
     this.set_arrow_color = function(child, color){
-      if(this.children.some(node => node.id === child.id)){
+      if(this.children.includes(child.id)){
         this.arrows[child.id] = color;
       }
     }
@@ -40,7 +59,8 @@ function node(x=false, y=false, r=false, text=""){
         this.text_color = "#000";
         this.text = text;
         this.active = false;
-        node.objs.push(this);
+
+        node.objs[this.id] = this;
         this.build();
 
         if(this.text in node.functions){
@@ -60,7 +80,7 @@ function node(x=false, y=false, r=false, text=""){
     
     this.update = function(){
       this.build();
-      this.draw_connections();
+      
     }
     
     this.build = function(){
@@ -98,15 +118,15 @@ function node(x=false, y=false, r=false, text=""){
     
     this.connect = function(n, w){
       if(n==this){
-        console.log("killed");
         return false;
       }
-      this.children.push(n);
-      console.log(w);
-      this.arrows[n.id] = {color:"#000", weight:w};
-      console.log(this.arrows)
+      this.children.push(n.id);
+      let id_time = new Date().getTime()
+      let id = Number(id_time.toString()+(node.edges.length).toString()) //inline concatination
+      node.edges.push({"id":id, start:this.id, end:n.id, color:"#000", weight:w})
+
       n.kill_root();
-      this.draw_connections();
+      node.drawEdges();
     }
     this.kill_root = function(){
       this.root = false;
@@ -166,48 +186,6 @@ function node(x=false, y=false, r=false, text=""){
     }
     
     
-    this.draw_connections = function(){
-      for(var i = 0; i<this.children.length; i++){
-        	  
-        	  this.slope = (this.y-this.children[i].y)/(this.x-this.children[i].x);
-            this.xflipper = 1;
-            this.yflipper = 1;
-            
-            if(this.x>=this.children[i].x){
-              this.yflipper = -1;
-              this.xflipper = -1;
-            }
-            
-            
-            this.update_arrow_start_values(this.slope, this.yflipper, this.xflipper);
-
-            
-            this.xend = 
- 	           	this.children[i].x -this.xflipper*(Math.cos(Math.atan(this.slope))*this.children[i].r);
-            
-            
-            this.yend = 
-            	this.children[i].y -this.yflipper*(Math.sin(Math.atan(this.slope))*this.children[i].r);
-
-            let current_arrow = this.arrows[this.children[i].id]
-            node.ctx.strokeStyle = current_arrow.color;
-            
-            this.arrow(this.xend, this.yend, current_arrow.weight);
-           
-
-
-            node.ctx.strokeStyle = this.color;
-            
-        
-        }
-      }
-    
-    this.set_value = function(value){
-      this.value = value;
-      
-      
-    }
-    
     
     this.set_func = function(func){
       this.func = func;
@@ -226,11 +204,9 @@ function node(x=false, y=false, r=false, text=""){
       }
       
       if(this.value){
-        console.log("here");
-        console.log(this.children);
         for(let i = 0; i<this.children.length; i++){
-          
-          this.children[i].feed(this.value);
+          let child = node.getChild(this.children[i])
+          child.feed(this.value);
           
         }
         return null;
@@ -245,7 +221,8 @@ function node(x=false, y=false, r=false, text=""){
         this.value = this.func.apply(this.value, this.args);
         
         for(let i=0; i<this.children.length; i++){
-          this.children[i].feed(this.value);
+          let child = node.getChild(this.children[i])
+          child.feed(this.value);
         }
         this.args = [];
       }
@@ -274,10 +251,12 @@ function node(x=false, y=false, r=false, text=""){
     }
 
 }
+
 node.init = function(canvasid, fps, mouse_move, editable, buildable){
       node.canvas = document.getElementById(canvasid);
       node.ctx = node.canvas.getContext('2d');
-      node.objs = [];
+      node.objs = {};
+      node.edges = [];
       if(fps == null){
         fps = 60;
       }
@@ -296,11 +275,9 @@ node.init = function(canvasid, fps, mouse_move, editable, buildable){
     
 node.update = function(){
     node.ctx.clearRect(0,0,node.canvas.width,node.canvas.height);
-    for(var i =0; i<node.objs.length; i++){
-      node.objs[i].update();
-      
-    }
-    
+    nodes = Object.values(node.objs);
+    nodes.map(node => node.update());
+    node.drawEdges();
     if(node.connecting){
       yflipper = 1;
       xflipper = 1;
@@ -383,6 +360,47 @@ node.activate_editing = function(fps){
   run();  
 }
 
+node.drawEdges = function(){
+  for(edge of node.edges){
+    let start = node.getChild(edge.start);
+    let end = node.getChild(edge.end);
+    start.slope = (start.y-end.y)/(start.x-end.x);
+    start.xflipper = 1;
+    start.yflipper = 1;
+              
+    if(start.x>=end.x){
+      start.yflipper = -1;
+      start.xflipper = -1;
+    }
+              
+              
+    start.update_arrow_start_values(start.slope, start.yflipper, start.xflipper);
+
+              
+    start.xend = end.x -start.xflipper*(Math.cos(Math.atan(start.slope))*end.r);
+              
+              
+    start.yend = end.y -start.yflipper*(Math.sin(Math.atan(start.slope))*end.r);
+
+    node.ctx.strokeStyle = edge.color;
+            
+    start.arrow(start.xend, start.yend, edge.weight);
+    
+    node.ctx.strokeStyle = this.color;
+  }
+}
+
+node.getChild = function(id){
+  return node.objs[id];
+}
+
+node.getEdge = function(parentid, childid){
+  for(edge of node.edges){
+    if(edge.start === parentid && edge.end === childid){
+      return edge;
+    }
+  }
+}
 
 node.check_mouse = function(){
   let rect = node.canvas.getBoundingClientRect();
@@ -393,14 +411,13 @@ node.check_mouse = function(){
   function check(e){
     node.mousex = e.x-rect.left;
     node.mousey = e.y-rect.top;
-    
-    for(var i =0; i<node.objs.length; i++){
-      if(node.objs[i].inside(node.mousex,node.mousey,node.px_down)){
+    let nodes = Object.values(node.objs);
+    for(var i =0; i<nodes.length; i++){
+      if(nodes[i].inside(node.mousex,node.mousey,node.px_down)){
         document.body.style.cursor = "pointer";
-        node.active = node.objs[i];
+        node.active = nodes[i];
     
         return;
-        //node.objs[i].set_active();
         
       }
     }
@@ -469,7 +486,6 @@ node.activate_building = function(){
     }
     if(e.which ==1){
       if(node.active == null){
-        console.log("node_build")
         node.building = true;
         node.building_start = [node.mousex,node.mousey];
         
@@ -488,7 +504,6 @@ node.activate_building = function(){
         node.connecting = true;
         node.start["start_node"].connect(node.active);
       }else{
-        console.log("create");
         node.connecting = false;
       }
     }
@@ -496,8 +511,6 @@ node.activate_building = function(){
   }
   
   function capture(e){
-    console.log('fire');
-    console.log(e.key);
     letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()_+~\\/?<>'\".,;:~`[]{}|-= ";
     if(node.active != null){
       if(letters.indexOf(e.key)>-1){
@@ -505,13 +518,11 @@ node.activate_building = function(){
       }
       
       if(e.key == "Enter"){
-        
-        console.log(this.value);
         node.active.feed();
       }
       if(e.key == "Delete"){
         node.active.delete();
-        console.log(node);
+
         
       }
       if(e.key = " "){
@@ -527,7 +538,6 @@ node.activate_building = function(){
       if(e.output){
         node.active.text += e.output;
         if(node.active.text in node.functions){
-          console.log("dad");
           node.active.func = node.functions[node.active.text];
           node.active.role = "func";
         }

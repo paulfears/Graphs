@@ -19,34 +19,27 @@
     <button id="reset_button">reset</button>
     <button id="breadth first">Breadth First Search</button>
     <script>
-      let checked = [];
-      let current_path = []
+
       let breadth_first_button = document.getElementById("breadth first");
       let reset_button = document.getElementById("reset_button");
       breadth_first_button.addEventListener('click', breadth_wrapper);
       reset_button.addEventListener('click', reset);
+
+
       const sleep = (milliseconds) => {
         return new Promise(resolve => setTimeout(resolve, milliseconds))
       }
 
       function getstart(){
-        let start = nodeking.objs.filter((node)=>node.text==="start")[0];
-        if(start){
-          start.text_color = "purple";
-        }
+        let start = Object.values(nodeking.objs).filter(node =>node.text==="start")[0]; //gets first node with text = to start
+        console.log(start);
+
         return start;
         
       }
 
       function reset(){
-        console.log("here")
-        for(let i =0; i<nodeking.objs.length; i++){
-          let keys = Object.keys(nodeking.objs[i].arrows)
-          for(let j =0; j < keys.length; j++){
-            nodeking['objs'][i]['arrows'][keys[j]]['color'] = "black";
-            console.log(nodeking['objs'][i]['arrows'][keys[j]]['color']);
-          }
-        }
+        nodeking.edges.map(edge => edge.color = "black");
       }
 
       function breadth_wrapper(){
@@ -71,7 +64,7 @@
         visited = []
         current = start;
         stacks = {}
-        stacks[current['id']]=[start]
+        stacks[current['id']]=[start.id]
         paths = {}
 
         while(true){
@@ -85,7 +78,7 @@
           if(!current.children){
             continue;
           }
-          for(child of current.children){
+          for(child of current.children.map((id)=>nodeking.getChild(id))){
             if(visited.some(node => node.id ===  child.id) || discovered.some(node => node.id == child.id)){
               console.log("already visited or discovered");
             }
@@ -93,7 +86,7 @@
               discovered.push(child);
               
               temp = [...stacks[current['id']]]
-              temp.push(child)
+              temp.push(child.id)
               stacks[child['id']] = temp;
             }
 
@@ -112,10 +105,9 @@
         }
         
         if(current.text == "end"){
-          console.log(stacks[current.id])
           for(let i = 0; i<stacks[current.id].length-1; i++){
-            console.log(stacks[current.id][i].arrows[stacks[current.id][i+1].id].color);
-            stacks[current.id][i].arrows[stacks[current.id][i+1].id].color = "red";
+            path_list = stacks[current.id];
+            nodeking.getEdge(path_list[i], path_list[i+1]).color = "red";
           }
         }else{
           alert("no soultion found");
@@ -146,7 +138,6 @@
       let canvas = document.getElementById("canvas");
       let nodeking = node.init("canvas");
       let start = new node(100, 100, 40, "start");
-      start = getstart()
       let end = new node(400, 400, 40, "end");
       
     </script>
