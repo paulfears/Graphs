@@ -136,9 +136,10 @@
     </script>
     <script>
       let canvas = document.getElementById("canvas");
-      let nodeking = Graph("canvas");
+      let nodeking = Graph("canvas", fps=60, editable=true, buildable=false);
       let start = new Graph.node(100, 100, 40, "start");
       let end = new Graph.node(400, 400, 40, "end");
+      start.connect(end);
       
     </script>
   </body>

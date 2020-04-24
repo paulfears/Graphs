@@ -1,5 +1,5 @@
 
-Graph = function(canvasid, fps, mouse_move, editable, buildable){
+Graph = function(canvasid, fps=60, editable=true, buildable=true){
       Graph.canvas = document.getElementById(canvasid);
       Graph.ctx = Graph.canvas.getContext('2d');
       Graph.objs = {};
@@ -7,13 +7,11 @@ Graph = function(canvasid, fps, mouse_move, editable, buildable){
       if(fps == null){
         fps = 60;
       }
-      if(mouse_move == null||true){
+      if(editable == true){
         Graph.check_mouse();
-      }
-      if(editable == null||true){
         Graph.activate_editing(fps);
       }
-      if(buildable == null||true){
+      if(buildable == true){
         Graph.activate_building();
       }
       return Graph;
