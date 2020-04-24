@@ -1,5 +1,5 @@
-
-Graph = function(canvasid, fps=60, editable=true, buildable=true){
+Graph = {}
+Graph.init = function(canvasid, fps=60, editable=true, buildable=true){
       Graph.canvas = document.getElementById(canvasid);
       Graph.ctx = Graph.canvas.getContext('2d');
       Graph.objs = {};
