@@ -15,13 +15,202 @@ Graph.init = function(canvasid, fps=60, editable=true, buildable=true){
         Graph.activate_building();
       }
       return Graph;
+}
+
+Graph.getChildrenByText = function(text){
+  return Object.values(Graph.objs).filter((node) => node.text === text);
+}
+
+Graph.breadthFirstSearch = async function(startid, endid, draw_path=true, delay=0){
+  let start = Graph.getChildById(startid);
+  let end = Graph.getChildById(endid);
+  let discovered = [start];
+  let visited = [];
+  let current = start;
+  let stacks = {}
+  stacks[current['id']] = [start.id]
+  paths = {}
+  console.log("here")
+
+  const sleep = function(millisecounds){
+    console.log("sleepy time");
+    return new Promise(resolve => setTimeout(resolve, millisecounds))
+    
+  }
+
+  while(true){
+    await sleep(delay);
+
+    if(current.id === endid){
+      break;
+    }
+    if(!current.children){
+      continue;
+    }
+    for(child of current.children.map((id)=>Graph.getChildById(id))){
+      if(
+        visited.some(node => node.id === child.id)||
+        discovered.some(node => node.id === child.id)       
+        )
+      {
+        //pass
+      }
+      else{
+        discovered.push(child);
+        temp = [...stacks[current['id']]]
+        temp.push(child.id)
+        stacks[child['id']] = temp;
+      }
+    }
+    old = current;
+    visited.push(discovered.shift());
+    current = discovered[0];
+    current.set_color("black");
+  }
+
+  if(current.id === endid){
+    for(let i = 0; i<stacks[current.id].length-1; i++){
+      path_list = stacks[current.id];
+      if(draw_path){
+
+        Graph.getEdge(path_list[i], path_list[i+1]).setColor("red");
+      }
+
+    }
+    console.log(path_list);
+    return path_list;
+  }
+  else{
+    console.log("failed")
+    return [];
+  }
+
+}
+
+
+Graph.edge = function(startNodeid, endNodeid, color="#aaa", weight=null, directional=false){
+
+    this.startNodeid = startNodeid;
+    this.endNodeid = endNodeid;
+    let id_time = new Date().getTime()
+    this.id = Number(id_time.toString()+(Graph.edges.length).toString()) //inline concatination
+    this.slope;
+    this.color = color;
+    this.weight = weight;
+    this.directional = directional;
+    let start = Graph.getChildById(startNodeid)
+    start.edges[this.id] = this.endNodeid;
+    if(!this.directional){
+      let end = Graph.getChildById(endNodeid);
+      end.edges[this.id] = this.startNodeid;
+    }
+
+    this.setDirectional = function(){
+      this.directional = true;
+    }
+
+    this.setUndirectional = function(){
+      this.directional = false;
+    }
+
+    this.setWeight = function(weight){
+      this.weight = weight;
+    }
+
+    this.delete = function(){
+
+    }
+
+    this.setColor = function(color){
+      this.color = color;
+    }
+
+    this.drawTo = function(x,y){
+
+    }
+
+    Graph.edge.drawArrow = function(x1,y1,x2,y2, weight=null, directional=false){
+      let headlen = 0; 
+      if(directional){
+        let headlen = 10;   // length of head in pixels
+      }
+      
+      let angle = Math.atan2(y2-y1,x2-x1);
+
+      if(weight === null){
+        Graph.ctx.beginPath();
+        Graph.ctx.moveTo(x1, y1);
+        Graph.ctx.lineTo(x2, y2);
+        Graph.ctx.lineTo(x2-headlen*Math.cos(angle-Math.PI/6),y2-headlen*Math.sin(angle-Math.PI/6));
+        Graph.ctx.moveTo(x2, y2);
+        Graph.ctx.lineTo(x2-headlen*Math.cos(angle+Math.PI/6),y2-headlen*Math.sin(angle+Math.PI/6));
+        Graph.ctx.closePath();
+        Graph.ctx.stroke();
+      }
+      else{
+        let midPointX = (x1+x2)/2;
+        let midPointY = (y1+y2)/2;
+        let slope = (y2-y1)/(x2-x1);
+        Graph.ctx.beginPath();
+        Graph.ctx.moveTo(x1, y1);
+        Graph.ctx.lineTo(midPointX, midPointY);
+        Graph.ctx.moveTo(midPointX, midPointY);
+        Graph.ctx.lineTo(x2, y2);
+        Graph.ctx.lineTo(x2-headlen*Math.cos(angle-Math.PI/6),y2-headlen*Math.sin(angle-Math.PI/6));
+        Graph.ctx.moveTo(x2, y2);
+        Graph.ctx.lineTo(x2-headlen*Math.cos(angle+Math.PI/6),y2-headlen*Math.sin(angle+Math.PI/6));
+        Graph.ctx.closePath();
+        Graph.ctx.stroke();
+        Graph.ctx.clearRect(midPointX-5, midPointY-5, 15, 15);
+        Graph.ctx.fillText(weight, midPointX, midPointY+5);
+
+      }
+    }
+
+
+    this._updateValues = function(slope = null){
+      let start = Graph.getChildById(this.startNodeid);
+      let end = Graph.getChildById(this.endNodeid);
+      
+      if(slope === null){
+        this.slope = (end.y-start.y)/(end.x-start.x);
+        
+      }
+      else{
+        this.slope = slope;
+      }
+      
+      let xflip = 1;
+      let yflip = 1;
+      if(start.x>=end.x){
+        yflip = -1;
+        xflip = -1;
+      }
+      this.xstart = start.x + xflip*(Math.cos(Math.atan(this.slope))*start.r);
+      this.ystart = start.y + yflip*(Math.sin(Math.atan(this.slope))*start.r);
+      this.xend = end.x - xflip*(Math.cos(Math.atan(this.slope))*end.r);     
+      this.yend = end.y - yflip*(Math.sin(Math.atan(this.slope))*end.r);
+
+    }
+
+    this.draw = function(){
+      this._updateValues();
+      let temp_color = Graph.ctx.strokeStyle;
+      
+      Graph.ctx.strokeStyle = this.color;
+      Graph.edge.drawArrow(this.xstart, this.ystart, this.xend, this.yend, weight=this.weight, directional=this.directional);
+      Graph.ctx.strokeStyle = temp_color;
+
+    }
+    
+  
 
 }
 
 Graph.node = function(x=false, y=false, r=false, text=""){
 
     this.children = [];
-    this.arrows = {};
+    this.edges = {};
 
     this.root = true;
     this.active = false;
@@ -33,8 +222,11 @@ Graph.node = function(x=false, y=false, r=false, text=""){
     
     this.delete = function(){
       for(let i = Graph.edges.length-1; i>-1; i--){
-        edge = Graph.edges[i];
-        if(edge.start === this.id || edge.end === this.id){
+        
+        let edge = Graph.edges[i];
+
+        if(edge.startNodeid === this.id || edge.endNodeid === this.id){
+          console.log("deleteing edge");
           Graph.edges.splice(i,1);
           
         }
@@ -53,12 +245,6 @@ Graph.node = function(x=false, y=false, r=false, text=""){
 
       }
 
-    }
-
-    this.set_arrow_color = function(child, color){
-      if(this.children.includes(child.id)){
-        this.arrows[child.id] = color;
-      }
     }
 
     this.set_color =function(new_color){
@@ -138,11 +324,12 @@ Graph.node = function(x=false, y=false, r=false, text=""){
         return false;
       }
       this.children.push(n.id);
-      let id_time = new Date().getTime()
-      let id = Number(id_time.toString()+(Graph.edges.length).toString()) //inline concatination
-      Graph.edges.push({"id":id, start:this.id, end:n.id, color:"#000", weight:w})
+
+      let edge = new Graph.edge(this.id, n.id, color="#000", weight=w)
+      Graph.edges.push(edge);
 
       n.kill_root();
+      
       Graph.drawEdges();
     }
     this.kill_root = function(){
@@ -151,55 +338,19 @@ Graph.node = function(x=false, y=false, r=false, text=""){
     
 
     this.arrow = function(x2,y2, weight){
-      let headlen = 10;   // length of head in pixels
-      let angle = Math.atan2(y2-this.ystart,x2-this.xstart);
 
-      if(weight == undefined){
-        Graph.ctx.beginPath();
-        Graph.ctx.moveTo(this.xstart, this.ystart);
-        Graph.ctx.lineTo(x2, y2);
-        Graph.ctx.lineTo(x2-headlen*Math.cos(angle-Math.PI/6),y2-headlen*Math.sin(angle-Math.PI/6));
-        Graph.ctx.moveTo(x2, y2);
-        Graph.ctx.lineTo(x2-headlen*Math.cos(angle+Math.PI/6),y2-headlen*Math.sin(angle+Math.PI/6));
-        Graph.ctx.closePath();
-        Graph.ctx.stroke();
+      let xflip = 1;
+      let yflip = 1;
+      if(this.x>=x2){
+        yflip = -1;
+        xflip = -1;
       }
-      else{
-        let mid_point = {x:(this.xstart+x2)/2, y:(this.ystart+y2)/2};
-        let slope = (y2-this.ystart)/(x2-this.xstart);
-        Graph.ctx.beginPath();
-        Graph.ctx.moveTo(this.xstart, this.ystart);
-        
-        Graph.ctx.lineTo(mid_point.x, mid_point.y);
-        
+      
+      let slope = (y2-this.y)/(x2-this.x);
 
-        Graph.ctx.moveTo(mid_point.x, mid_point.y);
-        Graph.ctx.lineTo(x2, y2);
-        Graph.ctx.lineTo(x2-headlen*Math.cos(angle-Math.PI/6),y2-headlen*Math.sin(angle-Math.PI/6));
-        Graph.ctx.moveTo(x2, y2);
-        Graph.ctx.lineTo(x2-headlen*Math.cos(angle+Math.PI/6),y2-headlen*Math.sin(angle+Math.PI/6));
-
-        Graph.ctx.closePath();
-        Graph.ctx.stroke();
-        Graph.ctx.clearRect(mid_point.x-5, mid_point.y-5, 15, 15);
-        Graph.ctx.fillText(weight, mid_point.x, mid_point.y+5);
-
-      }
-    }
-
-    
-    this.update_arrow_start_values = function(slope, xflip, yflip){
-            if(xflip == null){
-              xflip = 1;
-            }
-            if(yflip == null){
-              yflip = 1;
-            }
-            
-            this.xstart = this.x + xflip*Math.cos(Math.atan(slope))*this.r;
-            
-            
-            this.ystart =this.y + yflip*Math.sin(Math.atan(slope))*this.r;
+      let xstart = this.x + xflip*Math.cos(Math.atan(slope))*this.r;
+      let ystart = this.y + yflip*Math.sin(Math.atan(slope))*this.r;
+      Graph.edge.drawArrow(xstart, ystart, x2, y2, weight=weight)
     }
     
     
@@ -222,7 +373,7 @@ Graph.node = function(x=false, y=false, r=false, text=""){
       
       if(this.value){
         for(let i = 0; i<this.children.length; i++){
-          let child = Graph.getChild(this.children[i])
+          let child = Graph.getChildById(this.children[i])
           child.feed(this.value);
           
         }
@@ -238,7 +389,7 @@ Graph.node = function(x=false, y=false, r=false, text=""){
         this.value = this.func.apply(this.value, this.args);
         
         for(let i=0; i<this.children.length; i++){
-          let child = Graph.getChild(this.children[i])
+          let child = Graph.getChildById(this.children[i])
           child.feed(this.value);
         }
         this.args = [];
@@ -286,11 +437,7 @@ Graph.update = function(){
         yflipper = -1;
         
       }
-      Graph.start.start_node.update_arrow_start_values(slope, xflipper, yflipper);
-
       Graph.start.start_node.arrow(Graph.mousex, Graph.mousey);
-
-      Graph.ctx.strokeStyle = Graph.start.start_node.color;
     }
     if(Graph.building){
       Graph.ctx.strokeStyle = "#000";
@@ -360,41 +507,19 @@ Graph.activate_editing = function(fps){
 
 Graph.drawEdges = function(){
   for(edge of Graph.edges){
-    let start = Graph.getChild(edge.start);
-    let end = Graph.getChild(edge.end);
-    start.slope = (start.y-end.y)/(start.x-end.x);
-    start.xflipper = 1;
-    start.yflipper = 1;
-              
-    if(start.x>=end.x){
-      start.yflipper = -1;
-      start.xflipper = -1;
-    }
-              
-              
-    start.update_arrow_start_values(start.slope, start.yflipper, start.xflipper);
-
-              
-    start.xend = end.x -start.xflipper*(Math.cos(Math.atan(start.slope))*end.r);
-              
-              
-    start.yend = end.y -start.yflipper*(Math.sin(Math.atan(start.slope))*end.r);
-
-    Graph.ctx.strokeStyle = edge.color;
-            
-    start.arrow(start.xend, start.yend, edge.weight);
-    
     Graph.ctx.strokeStyle = this.color;
+    edge.draw();
+
   }
 }
 
-Graph.getChild = function(id){
+Graph.getChildById = function(id){
   return Graph.objs[id];
 }
 
 Graph.getEdge = function(parentid, childid){
   for(edge of Graph.edges){
-    if(edge.start === parentid && edge.end === childid){
+    if(edge.startNodeid === parentid && edge.endNodeid === childid){
       return edge;
     }
   }
@@ -554,7 +679,7 @@ Graph.activate_building = function(){
 
         
       }
-      Graph.capture_callback(Graph.active, e.key);
+      //Graph.capture_callback(Graph.active, e.key);
       
 
     }

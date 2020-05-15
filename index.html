@@ -9,8 +9,10 @@
   <body>
    
     <canvas width="500" height="500" id="canvas">not supported</canvas>
+    
     <script src="script.js">
     </script>
+    
 
     <br>
     <label>delay (ms)</label>
@@ -30,25 +32,32 @@
         return new Promise(resolve => setTimeout(resolve, milliseconds))
       }
 
-      function getstart(){
-        let start = Object.values(nodeking.objs).filter(node =>node.text==="start")[0]; //gets first node with text = to start
-        console.log(start);
-
-        return start;
+      function getStartId(){
+        let start = Graph.getChildrenByText("start");
         
+        return start[0].id;
+      }
+
+      function getEndId(){
+        let end = Graph.getChildrenByText("end");
+        
+        return end[0].id;
       }
 
       function reset(){
         nodeking.edges.map(edge => edge.color = "black");
       }
 
-      function breadth_wrapper(){
+      async function breadth_wrapper(){
         reset();
         let delay =  Number(document.getElementById("delay").value);
         console.log(delay);
-        breadth(delay=delay);
+        console.log("start");
+        console.log("start "+getStartId());
+        console.log("end "+getEndId());
+        let thing = await Graph.breadthFirstSearch(getStartId(), getEndId());
+        console.log("done")
         
-
       }
 
       
