@@ -24,6 +24,7 @@ Graph.getChildrenByText = function(text){
 Graph.breadthFirstSearch = async function(startid, endid, draw_path=true, delay=0){
   let start = Graph.getChildById(startid);
   let end = Graph.getChildById(endid);
+  console.log(delay);
   let discovered = [start];
   let visited = [];
   let current = start;
@@ -201,6 +202,10 @@ Graph.edge = function(startNodeid, endNodeid, color="#aaa", weight=null, directi
         yflip = -1;
         xflip = -1;
       }
+      
+      if(this.slope === Infinity){
+        yflip*=-1;
+      }
       this.xstart = start.x + xflip*(Math.cos(Math.atan(this.slope))*start.r);
       this.ystart = start.y + yflip*(Math.sin(Math.atan(this.slope))*start.r);
       this.xend = end.x - xflip*(Math.cos(Math.atan(this.slope))*end.r);     
@@ -324,8 +329,10 @@ Graph.node = function(x=false, y=false, r=false, text=""){
 		  Graph.ctx.arc(this.x,this.y,this.r,0, 2*Math.PI);
       Graph.ctx.closePath();
 		  Graph.ctx.stroke();
+      let temp = Graph.ctx.fillStyle;
 		  Graph.ctx.fillStyle = this.text_color;
       Graph.ctx.fillText(this.text, this.x,this.y);
+      Graph.ctx.fillStyle = temp;
         
    
       
@@ -507,7 +514,7 @@ Graph.activate_editing = function(fps){
     dragging = false;
     
   }
-  function run(){
+  function mainloop(){
     if(dragging){
       main_node.x = Graph.mousex+xdist;
       main_node.y = Graph.mousey+ydist;
@@ -515,13 +522,13 @@ Graph.activate_editing = function(fps){
       prevy = Graph.mousey;
     }
     Graph.update();
-    setTimeout(run,1000/fps);
+    setTimeout(mainloop,1000/fps);
     
   }
   
   Graph.canvas.addEventListener("mousedown", start_dragging);
   Graph.canvas.addEventListener("mouseup",end_dragging);
-  run();  
+  mainloop();  
 }
 
 Graph.drawEdges = function(){

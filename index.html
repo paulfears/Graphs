@@ -55,90 +55,10 @@
         console.log("start");
         console.log("start "+getStartId());
         console.log("end "+getEndId());
-        let thing = await Graph.breadthFirstSearch(getStartId(), getEndId());
+        let thing = await Graph.breadthFirstSearch(getStartId(), getEndId(), true, delay);
         console.log("done")
         
       }
-
-      
-
-      async function breadth(delay = 0){
-        goal = end;
-        start = getstart();
-        if(!start){
-          alert("no starting node");
-        }
-        discovered = [start];
-        
-        visited = []
-        current = start;
-        stacks = {}
-        stacks[current.id]=[start.id]
-        paths = {}
-
-        while(true){
-          console.log(delay);
-          await sleep(delay);
-          
-          if(current.text == "end"){
-            current.set_color("black");
-            break;
-          }
-          if(!current.children){
-            continue;
-          }
-          for(child of current.children.map((id)=>nodeking.getChild(id))){
-            if(visited.some(node => node.id ===  child.id) || discovered.some(node => node.id == child.id)){
-              console.log("already visited or discovered");
-            }
-            else{
-              discovered.push(child);
-              
-              temp = [...stacks[current['id']]]
-              temp.push(child.id)
-              stacks[child['id']] = temp;
-            }
-
-          }
-          
-          old = current;
-          visited.push(discovered.shift());
-
-          current = discovered[0];
-          
-          current.set_color("blue");
-            
-          
-          old.set_color("black");
-          
-        }
-        
-        if(current.text == "end"){
-          for(let i = 0; i<stacks[current.id].length-1; i++){
-            path_list = stacks[current.id];
-            nodeking.getEdge(path_list[i], path_list[i+1]).color = "red";
-          }
-        }else{
-          alert("no soultion found");
-        }
-
-
-
-        
-
-       
-        console.log(paths);
-        level = 0
-        
-
-
-        
-
-      }
-
-
-
-
       function log_all_values(){
         nodeking.objs.map((node)=>console.log(node.value));
       }
