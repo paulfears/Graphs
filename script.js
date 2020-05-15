@@ -72,6 +72,7 @@ Graph.breadthFirstSearch = async function(startid, endid, draw_path=true, delay=
     for(let i = 0; i<stacks[current.id].length-1; i++){
       path_list = stacks[current.id];
       if(draw_path){
+        console.log(path_list);
 
         Graph.getEdge(path_list[i], path_list[i+1]).setColor("red");
       }
@@ -103,6 +104,20 @@ Graph.edge = function(startNodeid, endNodeid, color="#aaa", weight=null, directi
     if(!this.directional){
       let end = Graph.getChildById(endNodeid);
       end.edges[this.id] = this.startNodeid;
+    }
+
+    this.isDirectional = function(){
+      if(this.directional === true){
+        return true;
+      }
+      return false;
+    }
+
+    this.isBiDirectional = function(){
+      if(this.directional === false){
+        return true;
+      }
+      return false;
     }
 
     this.setDirectional = function(){
@@ -319,13 +334,17 @@ Graph.node = function(x=false, y=false, r=false, text=""){
     
     
     
-    this.connect = function(n, w){
+    this.connect = function(n, w, biDirectional=true){
       if(n==this){
         return false;
       }
-      this.children.push(n.id);
+      if(biDirectional === true){
+        this.children.push(n.id);
+        n.children.push(this.id);
+      }
 
-      let edge = new Graph.edge(this.id, n.id, color="#000", weight=w)
+      let edge = new Graph.edge(this.id, n.id, color="#000", weight=w);
+      this.edges[edge.id]
       Graph.edges.push(edge);
 
       n.kill_root();
@@ -521,6 +540,11 @@ Graph.getEdge = function(parentid, childid){
   for(edge of Graph.edges){
     if(edge.startNodeid === parentid && edge.endNodeid === childid){
       return edge;
+    }
+    if(edge.isBiDirectional()){
+      if(edge.endNodeid === parentid && edge.startNodeid === childid){
+        return edge
+      }
     }
   }
 }
