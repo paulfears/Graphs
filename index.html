@@ -9,6 +9,8 @@
   <body>
    
     <canvas width="500" height="500" id="canvas">not supported</canvas>
+
+    <canvas width="600" height="300" id="canvas2">not supported</canvas>
    
     
     <script src="script.js">
@@ -34,13 +36,13 @@
       }
 
       function getStartId(){
-        let start = Graph.getChildrenByText("start");
+        let start = nodeking.getChildrenByText("start");
         
         return start[0].id;
       }
 
       function getEndId(){
-        let end = Graph.getChildrenByText("end");
+        let end = nodeking.getChildrenByText("end");
         
         return end[0].id;
       }
@@ -56,7 +58,7 @@
         console.log("start");
         console.log("start "+getStartId());
         console.log("end "+getEndId());
-        let thing = await Graph.breadthFirstSearch(getStartId(), getEndId(), true, delay);
+        let thing = await nodeking.breadthFirstSearch(getStartId(), getEndId(), true, delay);
         console.log("done")
         
       }
@@ -66,9 +68,10 @@
     </script>
     <script>
       let canvas = document.getElementById("canvas");
-      let nodeking = new Graph.init("canvas");
-      let start = new nodeking.node(100, 100, 40, "start");
-      let end = new nodeking.node(400, 400, 40, "end");
+      let nodeking = new Graph("canvas");
+      let nodeking2 = new Graph("canvas2");
+      let start = nodeking.node(100, 100, 40, "start");
+      let end = nodeking.node(400, 400, 40, "end");
       start.connect(end);
       
     </script>

@@ -1,110 +1,399 @@
-Graph = {}
-Graph.init = function(canvasid, fps=60, editable=true, buildable=true){
-      Graph.canvas = document.getElementById(canvasid);
-      Graph.ctx = Graph.canvas.getContext('2d');
-      Graph.objs = {};
-      Graph.edges = [];
+class Graph{
+  constructor(canvasid, fps=60, editable=true, buildable=true){
+      this.canvas = document.getElementById(canvasid);
+      this.ctx = this.canvas.getContext('2d');
+      this.objs = {};
+      this.edges = [];
       if(fps == null){
         fps = 60;
       }
       if(editable == true){
-        Graph.check_mouse();
-        Graph.activate_editing(fps);
+        this.check_mouse();
+        this.activate_editing(fps);
       }
       if(buildable == true){
-        Graph.activate_building();
+        this.activate_building();
+      }
+  }
+  getChildrenByText(text){
+    return Object.values(this.objs).filter((node) => node.text === text);
+  }
+
+  getEdge(parentid, childid){
+    for(let edge of this.edges){
+      if(edge.startNodeid === parentid && edge.endNodeid === childid){
+        return edge;
+      }
+      if(edge.isBiDirectional()){
+        if(edge.endNodeid === parentid && edge.startNodeid === childid){
+          return edge
+        }
+      }
+    }
+  }
+  
+  activate_building(){
+  
+    this.canvas.addEventListener("contextmenu", (e)=>e.preventDefault());
+    this.building = false;
+    this.canvas.addEventListener("mousedown", right_click.bind(this));
+    document.addEventListener("keydown", capture.bind(this));
+    this.canvas.addEventListener("mouseup", release_click.bind(this));
+    //node.canvas.addEventListener("dbclick", gui_build);
+    this.start = {"x":null, "y":null};
+    let action = null;
+    
+    function release_click(e){
+      if(e.which == 2){
+        return "";
+      }
+      if(e.which == 1){
+        if(this.building){
+          let x_dist = Math.pow((this.mousex-this.building_start[0]),2);
+          let y_dist = Math.pow((this.mousey-this.building_start[1]),2);
+          let dist = Math.sqrt(x_dist+y_dist);
+          this.node().create(this.building_start[0], this.building_start[1], dist, "");
+          this.building = false;
+        }
+      }
+      if(e.which == 3){
+        if(this.active != null){
+          this.start["start_node"].connect(this.active, 10);
+        }
+        this.connecting = false;
+        this.start = {"x":null, "y":null};
+      }
+    }
+    function right_click(e){
+      
+      if(e.which == 2){
+        return "";
+      }
+      if(e.which ==1){
+        if(this.active == null){
+          this.building = true;
+          this.building_start = [this.mousex, this.mousey];
+          
+        }
+      }
+      if(e.which == 3){
+        this.start = {"x":null, "y":null};
+        
+        this.start = {"x":this.mousex,"y":this.mousey, "active":this.active};
+        
+        if(this.active != null){
+          
+          this.connecting = false;
+          this.start["action"] = "connect";
+          this.start["start_node"] = this.active;
+          this.connecting = true;
+          this.start["start_node"].connect(this.active);
+        }else{
+          this.connecting = false;
+        }
+      }
+      
+    }
+    
+    function capture(e){
+      let letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()_+~\\/?<>'\".,;:~`[]{}|-= ";
+      if(this.active != null){
+        if(letters.indexOf(e.key)>-1){
+          e.output =  e.key;
+        }
+        
+        
+        if(e.key == "Delete"){
+          this.active.delete();
+
+          
+        }
+        if(e.key === " "){
+          e.preventDefault();
+        }
+        if(e.key == "Backspace"){
+          this.active.text = this.active.text.substring(0,this.active.text.length-1);
+          e.output = "";
+        }
+        
+
+        
+        if(e.output){
+          this.active.text += e.output;
+          if(this.active.text in Graph.functions){
+            this.active.func = Graph.functions[this.active.text];
+            this.active.role = "func";
+          }
+          else if(this.active.text.charAt(0) == "*"){
+            this.active.role = 'function';
+            
+          }
+          else if(parseFloat(this.active.text)){
+            this.active.set_value(parseFloat(this.active.text));
+            this.active.role = 'number';
+          }else{
+            
+            this.active.role = 'string';
+          }
+          
+
+          
+        }
+        //Graph.capture_callback(Graph.active, e.key);
+        
+
+      }
+      
+    }
+
+  }
+
+  check_mouse(){
+    let rect = this.canvas.getBoundingClientRect();
+    this.offsetx = rect.left;
+    this.offsety = rect.top;
+    this.active = null;
+    this.mouse_activated = true;
+    function check(e){
+      this.mousex = e.x-rect.left;
+      this.mousey = e.y-rect.top;
+      let nodes = Object.values(this.objs);
+      for(let i =0; i<nodes.length; i++){
+        if(nodes[i].inside(this.mousex,this.mousey,this.px_down)){
+          document.body.style.cursor = "pointer";
+          this.active = nodes[i];
+          
+          return;
+          
+        }
+      }
+      for(let i = 0; i<this.edges.length; i++){
+        if(this.edges[i].inside(this.mousex, this.mousey, this.px_down)){
+          document.body.style.cursor = "pointer";
+          this.edges[i].setColor("#aaa")
+          return;
+        }
+        else{
+          if(this.edges[i].color === "#aaa"){
+            this.edges[i].setColor("#000");
+          }
+        }
       }
 
-      return Graph;
-}
+      document.body.style.cursor = "default";
+      this.active = null;
+      
+      
+    }
+    
+    function adjust_scoll(e){
+      
+      
+      let scrollTop = (window.pageYOffset !== undefined) ? window.pageYOffset : (document.documentElement || document.body.parentNode || document.body).scrollTop;
+      
+      this.px_down = scrollTop;
+      
+    }
+    this.yscroll = 0;
+    this.px_down = 0;
+    this.canvas.addEventListener("mousemove", check.bind(this));
+    document.addEventListener("scroll",adjust_scoll.bind(this));
+  }
 
-Graph.getChildrenByText = function(text){
-  return Object.values(Graph.objs).filter((node) => node.text === text);
-}
+  async breadthFirstSearch(startid, endid, draw_path=true, delay=0){
+      let start = this.getNodeById(startid);
+      let end = this.getNodeById(endid);
+      console.log(delay);
+      let discovered = [start];
+      let visited = [];
+      let current = start;
+      let stacks = {}
+      stacks[current['id']] = [start.id]
+      let paths = {}
+      
 
-Graph.breadthFirstSearch = async function(startid, endid, draw_path=true, delay=0){
-  let start = Graph.getNodeById(startid);
-  let end = Graph.getNodeById(endid);
-  console.log(delay);
-  let discovered = [start];
-  let visited = [];
-  let current = start;
-  let stacks = {}
-  stacks[current['id']] = [start.id]
-  paths = {}
-  console.log("here")
+      const sleep = function(millisecounds){
+        console.log("sleepy time");
+        return new Promise(resolve => setTimeout(resolve, millisecounds))
+        
+      }
 
-  const sleep = function(millisecounds){
-    console.log("sleepy time");
-    return new Promise(resolve => setTimeout(resolve, millisecounds))
+      while(true){
+        await sleep(delay);
+
+        if(current.id === endid){
+          break;
+        }
+        if(!current.children){
+          continue;
+        }
+        for(let child of current.children.map((id)=>this.getNodeById(id))){
+          if(
+            visited.some(node => node.id === child.id)||
+            discovered.some(node => node.id === child.id)       
+            )
+          {
+            //pass
+          }
+          else{
+            discovered.push(child);
+            let temp = [...stacks[current['id']]]
+            temp.push(child.id)
+            stacks[child['id']] = temp;
+          }
+        }
+        let old = current;
+        visited.push(discovered.shift());
+        current = discovered[0];
+        current.set_color("black");
+      }
+
+      if(current.id === endid){
+        let path_list = []
+        for(let i = 0; i<stacks[current.id].length-1; i++){
+          path_list = stacks[current.id];
+          if(draw_path){
+            console.log(path_list);
+
+            this.getEdge(path_list[i], path_list[i+1]).setColor("red");
+          }
+
+        }
+        
+        return path_list;
+      }
+      else{
+        console.log("failed")
+        return [];
+      }
+
+  }
+  
+  update(){
+    this.ctx.clearRect(0,0, this.canvas.width, this.canvas.height);
+    let nodes = Object.values(this.objs);
+    nodes.map(node => node.update());
+    this.drawEdges();
+    if(this.connecting){
+      let yflipper = 1;
+      let xflipper = 1;
+      let slope = (this.mousey-this.start.active.y)/
+      (this.mousex-this.start.active.x);
+      if(this.mousex < this.start.active.x){
+        xflipper = -1;
+        yflipper = -1;
+        
+      }
+      this.start.start_node.arrow(this.mousex, this.mousey);
+    }
+    if(this.building){
+      this.ctx.strokeStyle = "#000";
+      this.ctx.beginPath();
+      let x_dist = Math.pow((this.mousex-this.building_start[0]),2);
+      let y_dist = Math.pow((this.mousey-this.building_start[1]),2);
+      let dist = Math.sqrt(x_dist+y_dist);
+      this.ctx.arc(
+        this.building_start[0],
+        this.building_start[1],
+        dist,0,2*Math.PI);
+      this.ctx.closePath();
+      this.ctx.stroke();
+    }
+
     
   }
 
-  while(true){
-    await sleep(delay);
-
-    if(current.id === endid){
-      break;
-    }
-    if(!current.children){
-      continue;
-    }
-    for(child of current.children.map((id)=>Graph.getNodeById(id))){
-      if(
-        visited.some(node => node.id === child.id)||
-        discovered.some(node => node.id === child.id)       
-        )
-      {
-        //pass
-      }
-      else{
-        discovered.push(child);
-        temp = [...stacks[current['id']]]
-        temp.push(child.id)
-        stacks[child['id']] = temp;
-      }
-    }
-    old = current;
-    visited.push(discovered.shift());
-    current = discovered[0];
-    current.set_color("black");
+  getNodeById(id){
+    return this.objs[id];
   }
 
-  if(current.id === endid){
-    for(let i = 0; i<stacks[current.id].length-1; i++){
-      path_list = stacks[current.id];
-      if(draw_path){
-        console.log(path_list);
-
-        Graph.getEdge(path_list[i], path_list[i+1]).setColor("red");
-      }
-
+  drawEdges(){
+    for(let edge of this.edges){
+      this.ctx.strokeStyle = this.color;
+      edge.draw();
     }
-    console.log(path_list);
-    return path_list;
   }
-  else{
-    console.log("failed")
-    return [];
+
+  activate_editing(fps){
+    let dragging = false;
+    let xdist = null;
+    let ydist = null;
+    let main_node = null;
+    if(this.mouse_activated!==true){
+      throw "mouse must be first initilized";
+    }
+    
+    function start_dragging(e){
+      
+      if(e.which == 2 || e.which==3){
+        return "";
+      }
+      if(this.active){  
+        xdist = this.active.x-this.mousex;
+        ydist = this.active.y-this.mousey;
+      
+      
+        main_node = this.active;
+        dragging = true;
+      }
+    }
+    
+    function end_dragging(e){
+      if(e.which == 2 || e.which==3){
+        return "";
+      }
+      
+      dragging = false;
+      
+    }
+    function mainloop(){
+      if(dragging){
+        main_node.x = this.mousex+xdist;
+        main_node.y = this.mousey+ydist;
+        let prevx = this.mousex;
+        let prevy = this.mousey;
+      }
+      this.update();
+      
+      setTimeout(mainloop,1000/fps);
+      
+    }
+    
+    this.canvas.addEventListener("mousedown", start_dragging.bind(this));
+    this.canvas.addEventListener("mouseup",end_dragging.bind(this));
+    mainloop = mainloop.bind(this);  
+    mainloop();
   }
+
+
+
+  edge(startNodeid, endNodeid, color="#aaa", weight=null, directional=false){
+    return new Graph._edge(this, startNodeid, endNodeid, color=color, weight=weight, directional=directional);
+  }
+  node(x=false, y=false, r=false, text=""){
+    return new Graph._node(this, x=x, y=y, r=r, text=text);
+  }
+
+
+
 
 }
 
 
-Graph.edge = function(startNodeid, endNodeid, color="#aaa", weight=null, directional=false){
+Graph._edge = function(context, startNodeid, endNodeid, color="#aaa", weight=null, directional=false){
 
     this.startNodeid = startNodeid;
     this.endNodeid = endNodeid;
     let id_time = new Date().getTime()
-    this.id = Number(id_time.toString()+(Graph.edges.length).toString()) //inline concatination
+    this.id = Number(id_time.toString()+(context.edges.length).toString()) //inline concatination
     this.slope;
     this.color = color;
     this.weight = weight;
     this.directional = directional;
-    let start = Graph.getNodeById(startNodeid)
+    let start = context.getNodeById(startNodeid)
     start.edges[this.id] = this.endNodeid;
     if(!this.directional){
-      let end = Graph.getNodeById(endNodeid);
+      let end = context.getNodeById(endNodeid);
       end.edges[this.id] = this.startNodeid;
     }
 
@@ -148,7 +437,7 @@ Graph.edge = function(startNodeid, endNodeid, color="#aaa", weight=null, directi
 
     }
 
-    Graph.edge.drawArrow = function(x1,y1,x2,y2, weight=null, directional=false){
+    context.edge.drawArrow = function(x1,y1,x2,y2, weight=null, directional=false){
       let headlen = 0; 
       if(directional){
         let headlen = 10;   // length of head in pixels
@@ -157,39 +446,39 @@ Graph.edge = function(startNodeid, endNodeid, color="#aaa", weight=null, directi
       let angle = Math.atan2(y2-y1,x2-x1);
 
       if(weight === null){
-        Graph.ctx.beginPath();
-        Graph.ctx.moveTo(x1, y1);
-        Graph.ctx.lineTo(x2, y2);
-        Graph.ctx.lineTo(x2-headlen*Math.cos(angle-Math.PI/6),y2-headlen*Math.sin(angle-Math.PI/6));
-        Graph.ctx.moveTo(x2, y2);
-        Graph.ctx.lineTo(x2-headlen*Math.cos(angle+Math.PI/6),y2-headlen*Math.sin(angle+Math.PI/6));
-        Graph.ctx.closePath();
-        Graph.ctx.stroke();
+        context.ctx.beginPath();
+        context.ctx.moveTo(x1, y1);
+        context.ctx.lineTo(x2, y2);
+        context.ctx.lineTo(x2-headlen*Math.cos(angle-Math.PI/6),y2-headlen*Math.sin(angle-Math.PI/6));
+        context.ctx.moveTo(x2, y2);
+        context.ctx.lineTo(x2-headlen*Math.cos(angle+Math.PI/6),y2-headlen*Math.sin(angle+Math.PI/6));
+        context.ctx.closePath();
+        context.ctx.stroke();
       }
       else{
         let midPointX = (x1+x2)/2;
         let midPointY = (y1+y2)/2;
         let slope = (y2-y1)/(x2-x1);
-        Graph.ctx.beginPath();
-        Graph.ctx.moveTo(x1, y1);
-        Graph.ctx.lineTo(midPointX, midPointY);
-        Graph.ctx.moveTo(midPointX, midPointY);
-        Graph.ctx.lineTo(x2, y2);
-        Graph.ctx.lineTo(x2-headlen*Math.cos(angle-Math.PI/6),y2-headlen*Math.sin(angle-Math.PI/6));
-        Graph.ctx.moveTo(x2, y2);
-        Graph.ctx.lineTo(x2-headlen*Math.cos(angle+Math.PI/6),y2-headlen*Math.sin(angle+Math.PI/6));
-        Graph.ctx.closePath();
-        Graph.ctx.stroke();
-        Graph.ctx.clearRect(midPointX-5, midPointY-5, 15, 15);
-        Graph.ctx.fillText(weight, midPointX, midPointY+5);
+        context.ctx.beginPath();
+        context.ctx.moveTo(x1, y1);
+        context.ctx.lineTo(midPointX, midPointY);
+        context.ctx.moveTo(midPointX, midPointY);
+        context.ctx.lineTo(x2, y2);
+        context.ctx.lineTo(x2-headlen*Math.cos(angle-Math.PI/6),y2-headlen*Math.sin(angle-Math.PI/6));
+        context.ctx.moveTo(x2, y2);
+        context.ctx.lineTo(x2-headlen*Math.cos(angle+Math.PI/6),y2-headlen*Math.sin(angle+Math.PI/6));
+        context.ctx.closePath();
+        context.ctx.stroke();
+        context.ctx.clearRect(midPointX-5, midPointY-5, 15, 15);
+        context.ctx.fillText(weight, midPointX, midPointY+5);
 
       }
     }
 
 
     this._updateValues = function(slope = null){
-      let start = Graph.getNodeById(this.startNodeid);
-      let end = Graph.getNodeById(this.endNodeid);
+      let start = context.getNodeById(this.startNodeid);
+      let end = context.getNodeById(this.endNodeid);
       
       if(slope === null){
         this.slope = (end.y-start.y)/(end.x-start.x);
@@ -218,11 +507,11 @@ Graph.edge = function(startNodeid, endNodeid, color="#aaa", weight=null, directi
 
     this.draw = function(){
       this._updateValues();
-      let temp_color = Graph.ctx.strokeStyle;
+      let temp_color = context.ctx.strokeStyle;
       
-      Graph.ctx.strokeStyle = this.color;
-      Graph.edge.drawArrow(this.xstart, this.ystart, this.xend, this.yend, weight=this.weight, directional=this.directional);
-      Graph.ctx.strokeStyle = temp_color;
+      context.ctx.strokeStyle = this.color;
+      context.edge.drawArrow(this.xstart, this.ystart, this.xend, this.yend, weight=this.weight, directional=this.directional);
+      context.ctx.strokeStyle = temp_color;
 
     }
 
@@ -260,7 +549,7 @@ Graph.edge = function(startNodeid, endNodeid, color="#aaa", weight=null, directi
 
 }
 
-Graph.node = function(x=false, y=false, r=false, text=""){
+Graph._node = function(context, x=false, y=false, r=false, text=""){
 
     this.children = [];
     this.edges = {};
@@ -271,25 +560,25 @@ Graph.node = function(x=false, y=false, r=false, text=""){
     this.func = null;
     this.args = [];
     let date = new Date();
-    this.id = date.getTime()+Object.keys(Graph.objs).length;
+    this.id = date.getTime()+Object.keys(context.objs).length;
     
     this.delete = function(){
-      for(let i = Graph.edges.length-1; i>-1; i--){
+      for(let i = context.edges.length-1; i>-1; i--){
         
-        let edge = Graph.edges[i];
+        let edge = context.edges[i];
 
         if(edge.startNodeid === this.id || edge.endNodeid === this.id){
-          console.log("deleteing edge");
-          Graph.edges.splice(i,1);
+          
+          context.edges.splice(i,1);
           
         }
       }
       
-      Graph.active = null;
+      context.active = null;
       let temp_id = this.id;
-      delete Graph.objs[this.id];
+      delete context.objs[this.id];
 
-      for(n of Object.values(Graph.objs)){
+      for(n of Object.values(context.objs)){
 
         position = n.children.indexOf(temp_id);
         if(position !== -1){
@@ -316,7 +605,7 @@ Graph.node = function(x=false, y=false, r=false, text=""){
         this.text = text;
         this.active = false;
 
-        Graph.objs[this.id] = this;
+        context.objs[this.id] = this;
         this.build();
 
         if(this.text in Graph.functions){
@@ -341,14 +630,14 @@ Graph.node = function(x=false, y=false, r=false, text=""){
     
     this.build = function(){
       if(this.active){
-        Graph.ctx.lineWidth = 10;
+        context.ctx.lineWidth = 10;
       }else{
-        Graph.ctx.linewidth = 1;
+        context.ctx.linewidth = 1;
       }
-      Graph.ctx.strokeStyle = this.color;
+      context.ctx.strokeStyle = this.color;
       
-      if(Graph.active == this){
-        Graph.ctx.strokeStyle = "#aaa";
+      if(context.active == this){
+        context.ctx.strokeStyle = "#aaa";
       }
       if(this.role == "number"){
         this.text_color = '#0000FF';
@@ -356,16 +645,16 @@ Graph.node = function(x=false, y=false, r=false, text=""){
       if(this.func !== null){
         this.text_color = "#FF0000";
       }
-    	Graph.ctx.textAlign = "center";
-      Graph.ctx.font="15px Arial"; 
-    	Graph.ctx.beginPath();
-		  Graph.ctx.arc(this.x,this.y,this.r,0, 2*Math.PI);
-      Graph.ctx.closePath();
-		  Graph.ctx.stroke();
-      let temp = Graph.ctx.fillStyle;
-		  Graph.ctx.fillStyle = this.text_color;
-      Graph.ctx.fillText(this.text, this.x,this.y);
-      Graph.ctx.fillStyle = temp;
+    	context.ctx.textAlign = "center";
+      context.ctx.font="15px Arial"; 
+    	context.ctx.beginPath();
+		  context.ctx.arc(this.x,this.y,this.r,0, 2*Math.PI);
+      context.ctx.closePath();
+		  context.ctx.stroke();
+      let temp = context.ctx.fillStyle;
+		  context.ctx.fillStyle = this.text_color;
+      context.ctx.fillText(this.text, this.x,this.y);
+      context.ctx.fillStyle = temp;
         
    
       
@@ -383,13 +672,13 @@ Graph.node = function(x=false, y=false, r=false, text=""){
         n.children.push(this.id);
       }
 
-      let edge = new Graph.edge(this.id, n.id, color="#000", weight=w);
+      let edge = context.edge(this.id, n.id, color="#000", weight=w);
       this.edges[edge.id]
-      Graph.edges.push(edge);
+      context.edges.push(edge);
 
       n.kill_root();
       
-      Graph.drawEdges();
+      context.drawEdges();
     }
     this.kill_root = function(){
       this.root = false;
@@ -409,7 +698,7 @@ Graph.node = function(x=false, y=false, r=false, text=""){
 
       let xstart = this.x + xflip*Math.cos(Math.atan(slope))*this.r;
       let ystart = this.y + yflip*Math.sin(Math.atan(slope))*this.r;
-      Graph.edge.drawArrow(xstart, ystart, x2, y2, weight=weight)
+      context.edge.drawArrow(xstart, ystart, x2, y2, weight=weight)
     }
     
     
@@ -432,7 +721,7 @@ Graph.node = function(x=false, y=false, r=false, text=""){
       
       if(this.value){
         for(let i = 0; i<this.children.length; i++){
-          let child = Graph.getNodeById(this.children[i])
+          let child = context.getNodeById(this.children[i])
           child.feed(this.value);
           
         }
@@ -448,7 +737,7 @@ Graph.node = function(x=false, y=false, r=false, text=""){
         this.value = this.func.apply(this.value, this.args);
         
         for(let i=0; i<this.children.length; i++){
-          let child = Graph.getNodeById(this.children[i])
+          let child = context.getNodeById(this.children[i])
           child.feed(this.value);
         }
         this.args = [];
@@ -481,287 +770,20 @@ Graph.node = function(x=false, y=false, r=false, text=""){
 
 
     
-Graph.update = function(){
-    Graph.ctx.clearRect(0,0,Graph.canvas.width,Graph.canvas.height);
-    nodes = Object.values(Graph.objs);
-    nodes.map(node => node.update());
-    Graph.drawEdges();
-    if(Graph.connecting){
-      yflipper = 1;
-      xflipper = 1;
-      let slope = (Graph.mousey-Graph.start.active.y)/
-      (Graph.mousex-Graph.start.active.x);
-      if(Graph.mousex < Graph.start.active.x){
-        xflipper = -1;
-        yflipper = -1;
-        
-      }
-      Graph.start.start_node.arrow(Graph.mousex, Graph.mousey);
-    }
-    if(Graph.building){
-      Graph.ctx.strokeStyle = "#000";
-      Graph.ctx.beginPath();
-      let x_dist = Math.pow((Graph.mousex-Graph.building_start[0]),2);
-      let y_dist = Math.pow((Graph.mousey-Graph.building_start[1]),2);
-      let dist = Math.sqrt(x_dist+y_dist);
-      Graph.ctx.arc(
-        Graph.building_start[0],
-        Graph.building_start[1],
-        dist,0,2*Math.PI);
-      Graph.ctx.closePath();
-      Graph.ctx.stroke();
-    }
 
-    
-}
 
-Graph.activate_editing = function(fps){
-  
-  let dragging = false;
-  let xdist = null;
-  let ydist = null;
-  let main_node = null;
-  if(Graph.mouse_activated!==true){
-    throw "mouse must be first initilized";
-  }
-  
-  function start_dragging(e){
-    if(e.which == 2 || e.which==3){
-      return "";
-    }
-    if(Graph.active){  
-      xdist = Graph.active.x-Graph.mousex;
-      ydist = Graph.active.y-Graph.mousey;
-    
-    
-      main_node = Graph.active;
-      dragging = true;
-    }
-  }
-  
-  function end_dragging(e){
-    if(e.which == 2 || e.which==3){
-      return "";
-    }
-    
-    dragging = false;
-    
-  }
-  function mainloop(){
-    if(dragging){
-      main_node.x = Graph.mousex+xdist;
-      main_node.y = Graph.mousey+ydist;
-      prevx = Graph.mousex;
-      prevy = Graph.mousey;
-    }
-    Graph.update();
-    setTimeout(mainloop,1000/fps);
-    
-  }
-  
-  Graph.canvas.addEventListener("mousedown", start_dragging);
-  Graph.canvas.addEventListener("mouseup",end_dragging);
-  mainloop();  
-}
 
-Graph.drawEdges = function(){
-  for(edge of Graph.edges){
-    Graph.ctx.strokeStyle = this.color;
-    edge.draw();
 
-  }
-}
 
-Graph.getNodeById = function(id){
-  return Graph.objs[id];
-}
 
-Graph.getEdge = function(parentid, childid){
-  for(edge of Graph.edges){
-    if(edge.startNodeid === parentid && edge.endNodeid === childid){
-      return edge;
-    }
-    if(edge.isBiDirectional()){
-      if(edge.endNodeid === parentid && edge.startNodeid === childid){
-        return edge
-      }
-    }
-  }
-}
 
-Graph.check_mouse = function(){
-  let rect = Graph.canvas.getBoundingClientRect();
-  Graph.offsetx = rect.left;
-  Graph.offsety = rect.top;
-  Graph.active = null;
-  Graph.mouse_activated = true;
-  function check(e){
-    Graph.mousex = e.x-rect.left;
-    Graph.mousey = e.y-rect.top;
-    let nodes = Object.values(Graph.objs);
-    for(let i =0; i<nodes.length; i++){
-      if(nodes[i].inside(Graph.mousex,Graph.mousey,Graph.px_down)){
-        document.body.style.cursor = "pointer";
-        Graph.active = nodes[i];
-    
-        return;
-        
-      }
-    }
-    for(let i = 0; i<Graph.edges.length; i++){
-      if(Graph.edges[i].inside(Graph.mousex, Graph.mousey, Graph.px_down)){
-        document.body.style.cursor = "pointer";
-        Graph.edges[i].setColor("#aaa")
-        return;
-      }
-      else{
-        if(Graph.edges[i].color === "#aaa"){
-          Graph.edges[i].setColor("#000");
-        }
-      }
-    }
 
-    document.body.style.cursor = "default";
-    Graph.active = null;
-    
-    
-  }
-  
-  function adjust_scoll(e){
-    
-    
-    let scrollTop = (window.pageYOffset !== undefined) ? window.pageYOffset : (document.documentElement || document.body.parentNode || document.body).scrollTop;
-    
-    Graph.px_down = scrollTop;
-    
-  }
-  Graph.yscroll = 0;
-  Graph.px_down = 0;
-  Graph.canvas.addEventListener("mousemove", check);
-  document.addEventListener("scroll",adjust_scoll);
-}
 
-Graph.activate_building = function(){
-  
-  Graph.canvas.addEventListener("contextmenu",
-  function(e){e.preventDefault()});
-  Graph.building = false;
-  Graph.canvas.addEventListener("mousedown", right_click);
-  document.addEventListener("keydown", capture);
-  Graph.canvas.addEventListener("mouseup", release_click);
-  //node.canvas.addEventListener("dbclick", gui_build);
-  Graph.start = {"x":null, "y":null};
-  let action = null;
-  
-  
-  function gui_build(e){
-  }
-  
-  function release_click(e){
-    if(e.which == 2){
-      return "";
-    }
-    if(e.which == 1){
-      if(Graph.building){
-        let x_dist = Math.pow((Graph.mousex-Graph.building_start[0]),2);
-        let y_dist = Math.pow((Graph.mousey-Graph.building_start[1]),2);
-        let dist = Math.sqrt(x_dist+y_dist);
-        new Graph.node().create(Graph.building_start[0],Graph.building_start[1],
-        dist, "");
-        Graph.building = false;
-      }
-    }
-    if(e.which == 3){
-      if(Graph.active != null){
-        Graph.start["start_node"].connect(Graph.active, 10);
-      }
-      Graph.connecting = false;
-      Graph.start = {"x":null, "y":null};
-    }
-  }
-  function right_click(e){
-    
-    if(e.which == 2){
-      return "";
-    }
-    if(e.which ==1){
-      if(Graph.active == null){
-        Graph.building = true;
-        Graph.building_start = [Graph.mousex,Graph.mousey];
-        
-      }
-    }
-    if(e.which == 3){
-      Graph.start = {"x":null, "y":null};
-      
-      Graph.start = {"x":Graph.mousex,"y":Graph.mousey, "active":Graph.active};
-      
-      if(Graph.active != null){
-        
-        Graph.connecting = false;
-        Graph.start["action"] = "connect";
-        Graph.start["start_node"] = Graph.active;
-        Graph.connecting = true;
-        Graph.start["start_node"].connect(Graph.active);
-      }else{
-        Graph.connecting = false;
-      }
-    }
-    
-  }
-  
-  function capture(e){
-    letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()_+~\\/?<>'\".,;:~`[]{}|-= ";
-    if(Graph.active != null){
-      if(letters.indexOf(e.key)>-1){
-        e.output =  e.key;
-      }
-      
-      
-      if(e.key == "Delete"){
-        Graph.active.delete();
 
-        
-      }
-      if(e.key = " "){
-        e.preventDefault();
-      }
-      if(e.key == "Backspace"){
-        Graph.active.text = Graph.active.text.substring(0,Graph.active.text.length-1);
-        e.output = "";
-      }
-      
 
-      
-      if(e.output){
-        Graph.active.text += e.output;
-        if(Graph.active.text in Graph.functions){
-          Graph.active.func = Graph.functions[Graph.active.text];
-          Graph.active.role = "func";
-        }
-        else if(Graph.active.text.charAt(0) == "*"){
-          Graph.active.role = 'function';
-          
-        }
-        else if(parseFloat(Graph.active.text)){
-          Graph.active.set_value(parseFloat(Graph.active.text));
-          Graph.active.role = 'number';
-        }else{
-          
-          Graph.active.role = 'string';
-        }
-        
 
-        
-      }
-      //Graph.capture_callback(Graph.active, e.key);
-      
 
-    }
-    
-  }
 
-}
 Graph.functions = {
   "end":()=>{}
 
