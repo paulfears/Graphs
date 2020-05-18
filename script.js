@@ -14,6 +14,7 @@ Graph.init = function(canvasid, fps=60, editable=true, buildable=true){
       if(buildable == true){
         Graph.activate_building();
       }
+
       return Graph;
 }
 
@@ -22,8 +23,8 @@ Graph.getChildrenByText = function(text){
 }
 
 Graph.breadthFirstSearch = async function(startid, endid, draw_path=true, delay=0){
-  let start = Graph.getChildById(startid);
-  let end = Graph.getChildById(endid);
+  let start = Graph.getNodeById(startid);
+  let end = Graph.getNodeById(endid);
   console.log(delay);
   let discovered = [start];
   let visited = [];
@@ -48,7 +49,7 @@ Graph.breadthFirstSearch = async function(startid, endid, draw_path=true, delay=
     if(!current.children){
       continue;
     }
-    for(child of current.children.map((id)=>Graph.getChildById(id))){
+    for(child of current.children.map((id)=>Graph.getNodeById(id))){
       if(
         visited.some(node => node.id === child.id)||
         discovered.some(node => node.id === child.id)       
@@ -100,12 +101,14 @@ Graph.edge = function(startNodeid, endNodeid, color="#aaa", weight=null, directi
     this.color = color;
     this.weight = weight;
     this.directional = directional;
-    let start = Graph.getChildById(startNodeid)
+    let start = Graph.getNodeById(startNodeid)
     start.edges[this.id] = this.endNodeid;
     if(!this.directional){
-      let end = Graph.getChildById(endNodeid);
+      let end = Graph.getNodeById(endNodeid);
       end.edges[this.id] = this.startNodeid;
     }
+
+    
 
     this.isDirectional = function(){
       if(this.directional === true){
@@ -185,8 +188,8 @@ Graph.edge = function(startNodeid, endNodeid, color="#aaa", weight=null, directi
 
 
     this._updateValues = function(slope = null){
-      let start = Graph.getChildById(this.startNodeid);
-      let end = Graph.getChildById(this.endNodeid);
+      let start = Graph.getNodeById(this.startNodeid);
+      let end = Graph.getNodeById(this.endNodeid);
       
       if(slope === null){
         this.slope = (end.y-start.y)/(end.x-start.x);
@@ -221,6 +224,36 @@ Graph.edge = function(startNodeid, endNodeid, color="#aaa", weight=null, directi
       Graph.edge.drawArrow(this.xstart, this.ystart, this.xend, this.yend, weight=this.weight, directional=this.directional);
       Graph.ctx.strokeStyle = temp_color;
 
+    }
+
+    this._pointDistance = function(x,y){
+      function sqr(x) { return x * x }
+      function dist2(v, w) { return sqr(v.x - w.x) + sqr(v.y - w.y) }
+      function distToSegmentSquared(p, v, w) {
+        var l2 = dist2(v, w);
+        if (l2 == 0) return dist2(p, v);
+        var t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+        t = Math.max(0, Math.min(1, t));
+        return dist2(p, { x: v.x + t * (w.x - v.x), y: v.y + t * (w.y - v.y) });
+      }
+      function distToSegment(p, v, w) { return Math.sqrt(distToSegmentSquared(p, v, w)); }
+      let p = {x:x, y:y}
+      let v = {x:this.xstart, y:this.ystart}
+      let w = {x:this.xend, y:this.yend}
+      return distToSegment(p, v, w);
+    }
+
+    this.inside = function(x,y, yoffset, xoffset, sensitivity=3){
+      if(!yoffset){
+        yoffset = 0;
+      }
+      if(!xoffset){
+        xoffset = 0;
+      }
+      if(this._pointDistance(x+xoffset,y+yoffset) < sensitivity+1){
+        return true;
+      }
+      return false;
     }
     
   
@@ -399,7 +432,7 @@ Graph.node = function(x=false, y=false, r=false, text=""){
       
       if(this.value){
         for(let i = 0; i<this.children.length; i++){
-          let child = Graph.getChildById(this.children[i])
+          let child = Graph.getNodeById(this.children[i])
           child.feed(this.value);
           
         }
@@ -415,7 +448,7 @@ Graph.node = function(x=false, y=false, r=false, text=""){
         this.value = this.func.apply(this.value, this.args);
         
         for(let i=0; i<this.children.length; i++){
-          let child = Graph.getChildById(this.children[i])
+          let child = Graph.getNodeById(this.children[i])
           child.feed(this.value);
         }
         this.args = [];
@@ -539,7 +572,7 @@ Graph.drawEdges = function(){
   }
 }
 
-Graph.getChildById = function(id){
+Graph.getNodeById = function(id){
   return Graph.objs[id];
 }
 
@@ -566,7 +599,7 @@ Graph.check_mouse = function(){
     Graph.mousex = e.x-rect.left;
     Graph.mousey = e.y-rect.top;
     let nodes = Object.values(Graph.objs);
-    for(var i =0; i<nodes.length; i++){
+    for(let i =0; i<nodes.length; i++){
       if(nodes[i].inside(Graph.mousex,Graph.mousey,Graph.px_down)){
         document.body.style.cursor = "pointer";
         Graph.active = nodes[i];
@@ -575,6 +608,19 @@ Graph.check_mouse = function(){
         
       }
     }
+    for(let i = 0; i<Graph.edges.length; i++){
+      if(Graph.edges[i].inside(Graph.mousex, Graph.mousey, Graph.px_down)){
+        document.body.style.cursor = "pointer";
+        Graph.edges[i].setColor("#aaa")
+        return;
+      }
+      else{
+        if(Graph.edges[i].color === "#aaa"){
+          Graph.edges[i].setColor("#000");
+        }
+      }
+    }
+
     document.body.style.cursor = "default";
     Graph.active = null;
     
@@ -671,9 +717,7 @@ Graph.activate_building = function(){
         e.output =  e.key;
       }
       
-      if(e.key == "Enter"){
-        Graph.active.feed();
-      }
+      
       if(e.key == "Delete"){
         Graph.active.delete();
 

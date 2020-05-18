@@ -9,6 +9,7 @@
   <body>
    
     <canvas width="500" height="500" id="canvas">not supported</canvas>
+   
     
     <script src="script.js">
     </script>
@@ -65,9 +66,9 @@
     </script>
     <script>
       let canvas = document.getElementById("canvas");
-      let nodeking = Graph.init("canvas");
-      let start = new Graph.node(100, 100, 40, "start");
-      let end = new Graph.node(400, 400, 40, "end");
+      let nodeking = new Graph.init("canvas");
+      let start = new nodeking.node(100, 100, 40, "start");
+      let end = new nodeking.node(400, 400, 40, "end");
       start.connect(end);
       
     </script>
