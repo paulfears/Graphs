@@ -1,10 +1,16 @@
 class Graph{
 
+  static contexts = {}
+
   constructor(canvasid, fps=60, editable=true, buildable=true){
       this.canvas = document.getElementById(canvasid);
       this.ctx = this.canvas.getContext('2d');
       this.objs = {};
       this.edges = [];
+      let id_time = new Date().getTime().toString()
+      let id_random = Math.round(Math.random()*9999999).toString()
+      this.id = Number(id_time+id_random);
+      Graph.contexts[this.id] = this;
       if(fps == null){
         fps = 60;
       }
@@ -16,6 +22,11 @@ class Graph{
         this.activate_building();
       }
   }
+  static getContext(id){
+    return Graph.contexts[id];
+  }
+
+
   getChildrenByText(text){
     return Object.values(this.objs).filter((node) => node.text === text);
   }
@@ -405,10 +416,10 @@ class Graph{
 
 
   edge(startNodeid, endNodeid, color="#aaa", weight=null, directional=false){
-    return new Graph._edge(this, startNodeid, endNodeid, color=color, weight=weight, directional=directional);
+    return new Graph._edge(this.id, startNodeid, endNodeid, color=color, weight=weight, directional=directional);
   }
   node(x=false, y=false, r=false, text=""){
-    return new Graph._node(this, x=x, y=y, r=r, text=text);
+    return new Graph._node(this.id, x=x, y=y, r=r, text=text);
   }
 
 
@@ -417,20 +428,20 @@ class Graph{
 }
 
 
-Graph._edge = function(context, startNodeid, endNodeid, color="#aaa", weight=null, directional=false){
-    this.context = context
+Graph._edge = function(contextid, startNodeid, endNodeid, color="#aaa", weight=null, directional=false){
+    this.contextid = contextid
     this.startNodeid = startNodeid;
     this.endNodeid = endNodeid;
     let id_time = new Date().getTime()
-    this.id = Number(id_time.toString()+(this.context.edges.length).toString()) //inline concatination
+    this.id = Number(id_time.toString()+(Graph.getContext(this.contextid).edges.length).toString()) //inline concatination
     this.slope;
     this.color = color;
     this.weight = weight;
     this.directional = directional;
-    let start = this.context.getNodeById(startNodeid)
+    let start = Graph.getContext(this.contextid).getNodeById(startNodeid)
     start.edges[this.id] = this.endNodeid;
     if(!this.directional){
-      let end = this.context.getNodeById(endNodeid);
+      let end = Graph.getContext(this.contextid).getNodeById(endNodeid);
       end.edges[this.id] = this.startNodeid;
     }
 
@@ -478,8 +489,9 @@ Graph._edge = function(context, startNodeid, endNodeid, color="#aaa", weight=nul
 
 
     this._updateValues = function(slope = null){
-      let start = this.context.getNodeById(this.startNodeid);
-      let end = this.context.getNodeById(this.endNodeid);
+      let context = Graph.getContext(this.contextid);
+      let start = context.getNodeById(this.startNodeid);
+      let end = context.getNodeById(this.endNodeid);
       
       if(slope === null){
         this.slope = (end.y-start.y)/(end.x-start.x);
@@ -508,11 +520,12 @@ Graph._edge = function(context, startNodeid, endNodeid, color="#aaa", weight=nul
 
     this.draw = function(){
       this._updateValues();
-      let temp_color = this.context.ctx.strokeStyle;
+      let context = Graph.getContext(this.contextid);
+      let temp_color = context.ctx.strokeStyle;
       
-      this.context.ctx.strokeStyle = this.color;
-      this.context.drawArrow(this.xstart, this.ystart, this.xend, this.yend, weight=this.weight, directional=this.directional);
-      this.context.ctx.strokeStyle = temp_color;
+      context.ctx.strokeStyle = this.color;
+      context.drawArrow(this.xstart, this.ystart, this.xend, this.yend, weight=this.weight, directional=this.directional);
+      context.ctx.strokeStyle = temp_color;
 
     }
 
@@ -550,36 +563,37 @@ Graph._edge = function(context, startNodeid, endNodeid, color="#aaa", weight=nul
 
 }
 
-Graph._node = function(context, x=false, y=false, r=false, text=""){
+Graph._node = function(contextid, x=false, y=false, r=false, text=""){
 
     this.children = [];
     this.edges = {};
-    this.context = context;
+    this.contextid = contextid;
     this.root = true;
     this.active = false;
     this.value = null;
     this.func = null;
     this.args = [];
-    let date = new Date();
-    this.id = date.getTime()+Object.keys(this.context.objs).length;
+    let time = new Date().getTime().toString();
+    this.id = Number(time+Object.keys(Graph.getContext(this.contextid).objs).length);
     
     this.delete = function(){
-      for(let i = this.context.edges.length-1; i>-1; i--){
+      let context = Graph.getContext(this.contextid);
+      for(let i = context.edges.length-1; i>-1; i--){
         
-        let edge = this.context.edges[i];
+        let edge = context.edges[i];
 
         if(edge.startNodeid === this.id || edge.endNodeid === this.id){
           
-          this.context.edges.splice(i,1);
+          context.edges.splice(i,1);
           
         }
       }
       
-      this.context.active = null;
+      context.active = null;
       let temp_id = this.id;
-      delete this.context.objs[this.id];
+      delete context.objs[this.id];
 
-      for(n of Object.values(this.context.objs)){
+      for(n of Object.values(context.objs)){
 
         position = n.children.indexOf(temp_id);
         if(position !== -1){
@@ -605,8 +619,9 @@ Graph._node = function(context, x=false, y=false, r=false, text=""){
         this.text_color = "#000";
         this.text = text;
         this.active = false;
+        let context = Graph.getContext(this.contextid);
 
-        this.context.objs[this.id] = this;
+        context.objs[this.id] = this;
         this.build();
 
         if(this.text in Graph.functions){
@@ -630,15 +645,16 @@ Graph._node = function(context, x=false, y=false, r=false, text=""){
     }
     
     this.build = function(){
+      let context = Graph.getContext(this.contextid);
       if(this.active){
-        this.context.ctx.lineWidth = 10;
+        context.ctx.lineWidth = 10;
       }else{
-        this.context.ctx.linewidth = 1;
+        context.ctx.linewidth = 1;
       }
-      this.context.ctx.strokeStyle = this.color;
+      context.ctx.strokeStyle = this.color;
       
-      if(this.context.active == this){
-        this.context.ctx.strokeStyle = "#aaa";
+      if(context.active == this){
+        context.ctx.strokeStyle = "#aaa";
       }
       if(this.role == "number"){
         this.text_color = '#0000FF';
@@ -646,25 +662,23 @@ Graph._node = function(context, x=false, y=false, r=false, text=""){
       if(this.func !== null){
         this.text_color = "#FF0000";
       }
-    	this.context.ctx.textAlign = "center";
-      this.context.ctx.font="15px Arial"; 
-    	this.context.ctx.beginPath();
-		  this.context.ctx.arc(this.x,this.y,this.r,0, 2*Math.PI);
-      this.context.ctx.closePath();
-		  this.context.ctx.stroke();
-      let temp = this.context.ctx.fillStyle;
-		  this.context.ctx.fillStyle = this.text_color;
-      this.context.ctx.fillText(this.text, this.x,this.y);
-      this.context.ctx.fillStyle = temp;
-        
-   
-      
+    	context.ctx.textAlign = "center";
+      context.ctx.font="15px Arial"; 
+    	context.ctx.beginPath();
+		  context.ctx.arc(this.x,this.y,this.r,0, 2*Math.PI);
+      context.ctx.closePath();
+		  context.ctx.stroke();
+      let temp = context.ctx.fillStyle;
+		  context.ctx.fillStyle = this.text_color;
+      context.ctx.fillText(this.text, this.x,this.y);
+      context.ctx.fillStyle = temp;
     }
     
     
     
     
     this.connect = function(n, w, biDirectional=true){
+      let context = Graph.getContext(this.contextid);
       if(n==this){
         return false;
       }
@@ -673,13 +687,13 @@ Graph._node = function(context, x=false, y=false, r=false, text=""){
         n.children.push(this.id);
       }
 
-      let edge = this.context.edge(this.id, n.id, color="#000", weight=w);
+      let edge = context.edge(this.id, n.id, color="#000", weight=w);
       this.edges[edge.id]
-      this.context.edges.push(edge);
+      context.edges.push(edge);
 
       n.kill_root();
       
-      this.context.drawEdges();
+      context.drawEdges();
     }
     this.kill_root = function(){
       this.root = false;
@@ -687,7 +701,7 @@ Graph._node = function(context, x=false, y=false, r=false, text=""){
     
 
     this.arrow = function(x2,y2, weight){
-
+      let context = Graph.getContext(this.contextid);
       let xflip = 1;
       let yflip = 1;
       if(this.x>=x2){
@@ -699,7 +713,7 @@ Graph._node = function(context, x=false, y=false, r=false, text=""){
 
       let xstart = this.x + xflip*Math.cos(Math.atan(slope))*this.r;
       let ystart = this.y + yflip*Math.sin(Math.atan(slope))*this.r;
-      this.context.drawArrow(xstart, ystart, x2, y2, weight=weight)
+      context.drawArrow(xstart, ystart, x2, y2, weight=weight)
     }
     
     
@@ -714,7 +728,7 @@ Graph._node = function(context, x=false, y=false, r=false, text=""){
     
     this.feed = function(arg){
       
-      
+      let context = Graph.getContext(this.contextid);
 
       if(this.value == null && this.func == null){
         return false;
@@ -722,7 +736,7 @@ Graph._node = function(context, x=false, y=false, r=false, text=""){
       
       if(this.value){
         for(let i = 0; i<this.children.length; i++){
-          let child = this.context.getNodeById(this.children[i])
+          let child = context.getNodeById(this.children[i])
           child.feed(this.value);
           
         }
@@ -738,7 +752,7 @@ Graph._node = function(context, x=false, y=false, r=false, text=""){
         this.value = this.func.apply(this.value, this.args);
         
         for(let i=0; i<this.children.length; i++){
-          let child = this.context.getNodeById(this.children[i])
+          let child = context.getNodeById(this.children[i])
           child.feed(this.value);
         }
         this.args = [];
@@ -768,22 +782,6 @@ Graph._node = function(context, x=false, y=false, r=false, text=""){
     }
 
 }
-
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 Graph.functions = {
   "end":()=>{}
