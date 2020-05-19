@@ -1,4 +1,5 @@
 class Graph{
+
   constructor(canvasid, fps=60, editable=true, buildable=true){
       this.canvas = document.getElementById(canvasid);
       this.ctx = this.canvas.getContext('2d');
@@ -31,12 +32,50 @@ class Graph{
       }
     }
   }
+
+  drawArrow(x1,y1,x2,y2, weight=null, directional=false){
+      let headlen = 0; 
+      if(directional){
+        let headlen = 10;   // length of head in pixels
+      }
+      
+      let angle = Math.atan2(y2-y1,x2-x1);
+
+      if(weight === null){
+        this.ctx.beginPath();
+        this.ctx.moveTo(x1, y1);
+        this.ctx.lineTo(x2, y2);
+        this.ctx.lineTo(x2-headlen*Math.cos(angle-Math.PI/6),y2-headlen*Math.sin(angle-Math.PI/6));
+        this.ctx.moveTo(x2, y2);
+        this.ctx.lineTo(x2-headlen*Math.cos(angle+Math.PI/6),y2-headlen*Math.sin(angle+Math.PI/6));
+        this.ctx.closePath();
+        this.ctx.stroke();
+      }
+      else{
+        let midPointX = (x1+x2)/2;
+        let midPointY = (y1+y2)/2;
+        let slope = (y2-y1)/(x2-x1);
+        this.ctx.beginPath();
+        this.ctx.moveTo(x1, y1);
+        this.ctx.lineTo(midPointX, midPointY);
+        this.ctx.moveTo(midPointX, midPointY);
+        this.ctx.lineTo(x2, y2);
+        this.ctx.lineTo(x2-headlen*Math.cos(angle-Math.PI/6),y2-headlen*Math.sin(angle-Math.PI/6));
+        this.ctx.moveTo(x2, y2);
+        this.ctx.lineTo(x2-headlen*Math.cos(angle+Math.PI/6),y2-headlen*Math.sin(angle+Math.PI/6));
+        this.ctx.closePath();
+        this.ctx.stroke();
+        this.ctx.clearRect(midPointX-5, midPointY-5, 15, 15);
+        this.ctx.fillText(weight, midPointX, midPointY+5);
+
+      }
+    }
   
   activate_building(){
   
     this.canvas.addEventListener("contextmenu", (e)=>e.preventDefault());
     this.building = false;
-    this.canvas.addEventListener("mousedown", right_click.bind(this));
+    this.canvas.addEventListener("mousedown", click_down.bind(this));
     document.addEventListener("keydown", capture.bind(this));
     this.canvas.addEventListener("mouseup", release_click.bind(this));
     //node.canvas.addEventListener("dbclick", gui_build);
@@ -49,8 +88,8 @@ class Graph{
       }
       if(e.which == 1){
         if(this.building){
-          let x_dist = Math.pow((this.mousex-this.building_start[0]),2);
-          let y_dist = Math.pow((this.mousey-this.building_start[1]),2);
+          let x_dist = Math.pow(((this.mousex)-this.building_start[0]),2);
+          let y_dist = Math.pow(((this.mousey)-this.building_start[1]),2);
           let dist = Math.sqrt(x_dist+y_dist);
           this.node().create(this.building_start[0], this.building_start[1], dist, "");
           this.building = false;
@@ -64,12 +103,12 @@ class Graph{
         this.start = {"x":null, "y":null};
       }
     }
-    function right_click(e){
+    function click_down(e){
       
       if(e.which == 2){
         return "";
       }
-      if(e.which ==1){
+      if(e.which == 1){
         if(this.active == null){
           this.building = true;
           this.building_start = [this.mousex, this.mousey];
@@ -156,10 +195,10 @@ class Graph{
     this.mouse_activated = true;
     function check(e){
       this.mousex = e.x-rect.left;
-      this.mousey = e.y-rect.top;
+      this.mousey = e.y-rect.top+this.px_down;
       let nodes = Object.values(this.objs);
       for(let i =0; i<nodes.length; i++){
-        if(nodes[i].inside(this.mousex,this.mousey,this.px_down)){
+        if(nodes[i].inside(this.mousex,this.mousey)){
           document.body.style.cursor = "pointer";
           this.active = nodes[i];
           
@@ -168,7 +207,7 @@ class Graph{
         }
       }
       for(let i = 0; i<this.edges.length; i++){
-        if(this.edges[i].inside(this.mousex, this.mousey, this.px_down)){
+        if(this.edges[i].inside(this.mousex, this.mousey)){
           document.body.style.cursor = "pointer";
           this.edges[i].setColor("#aaa")
           return;
@@ -188,14 +227,12 @@ class Graph{
     
     function adjust_scoll(e){
       
-      
-      let scrollTop = (window.pageYOffset !== undefined) ? window.pageYOffset : (document.documentElement || document.body.parentNode || document.body).scrollTop;
-      
-      this.px_down = scrollTop;
+      this.px_down = (window.pageYOffset !== undefined) ? window.pageYOffset : (document.documentElement || document.body.parentNode || document.body).scrollTop;
       
     }
-    this.yscroll = 0;
+    
     this.px_down = 0;
+    console.log()
     this.canvas.addEventListener("mousemove", check.bind(this));
     document.addEventListener("scroll",adjust_scoll.bind(this));
   }
@@ -381,19 +418,19 @@ class Graph{
 
 
 Graph._edge = function(context, startNodeid, endNodeid, color="#aaa", weight=null, directional=false){
-
+    this.context = context
     this.startNodeid = startNodeid;
     this.endNodeid = endNodeid;
     let id_time = new Date().getTime()
-    this.id = Number(id_time.toString()+(context.edges.length).toString()) //inline concatination
+    this.id = Number(id_time.toString()+(this.context.edges.length).toString()) //inline concatination
     this.slope;
     this.color = color;
     this.weight = weight;
     this.directional = directional;
-    let start = context.getNodeById(startNodeid)
+    let start = this.context.getNodeById(startNodeid)
     start.edges[this.id] = this.endNodeid;
     if(!this.directional){
-      let end = context.getNodeById(endNodeid);
+      let end = this.context.getNodeById(endNodeid);
       end.edges[this.id] = this.startNodeid;
     }
 
@@ -437,48 +474,12 @@ Graph._edge = function(context, startNodeid, endNodeid, color="#aaa", weight=nul
 
     }
 
-    context.edge.drawArrow = function(x1,y1,x2,y2, weight=null, directional=false){
-      let headlen = 0; 
-      if(directional){
-        let headlen = 10;   // length of head in pixels
-      }
-      
-      let angle = Math.atan2(y2-y1,x2-x1);
 
-      if(weight === null){
-        context.ctx.beginPath();
-        context.ctx.moveTo(x1, y1);
-        context.ctx.lineTo(x2, y2);
-        context.ctx.lineTo(x2-headlen*Math.cos(angle-Math.PI/6),y2-headlen*Math.sin(angle-Math.PI/6));
-        context.ctx.moveTo(x2, y2);
-        context.ctx.lineTo(x2-headlen*Math.cos(angle+Math.PI/6),y2-headlen*Math.sin(angle+Math.PI/6));
-        context.ctx.closePath();
-        context.ctx.stroke();
-      }
-      else{
-        let midPointX = (x1+x2)/2;
-        let midPointY = (y1+y2)/2;
-        let slope = (y2-y1)/(x2-x1);
-        context.ctx.beginPath();
-        context.ctx.moveTo(x1, y1);
-        context.ctx.lineTo(midPointX, midPointY);
-        context.ctx.moveTo(midPointX, midPointY);
-        context.ctx.lineTo(x2, y2);
-        context.ctx.lineTo(x2-headlen*Math.cos(angle-Math.PI/6),y2-headlen*Math.sin(angle-Math.PI/6));
-        context.ctx.moveTo(x2, y2);
-        context.ctx.lineTo(x2-headlen*Math.cos(angle+Math.PI/6),y2-headlen*Math.sin(angle+Math.PI/6));
-        context.ctx.closePath();
-        context.ctx.stroke();
-        context.ctx.clearRect(midPointX-5, midPointY-5, 15, 15);
-        context.ctx.fillText(weight, midPointX, midPointY+5);
-
-      }
-    }
 
 
     this._updateValues = function(slope = null){
-      let start = context.getNodeById(this.startNodeid);
-      let end = context.getNodeById(this.endNodeid);
+      let start = this.context.getNodeById(this.startNodeid);
+      let end = this.context.getNodeById(this.endNodeid);
       
       if(slope === null){
         this.slope = (end.y-start.y)/(end.x-start.x);
@@ -507,11 +508,11 @@ Graph._edge = function(context, startNodeid, endNodeid, color="#aaa", weight=nul
 
     this.draw = function(){
       this._updateValues();
-      let temp_color = context.ctx.strokeStyle;
+      let temp_color = this.context.ctx.strokeStyle;
       
-      context.ctx.strokeStyle = this.color;
-      context.edge.drawArrow(this.xstart, this.ystart, this.xend, this.yend, weight=this.weight, directional=this.directional);
-      context.ctx.strokeStyle = temp_color;
+      this.context.ctx.strokeStyle = this.color;
+      this.context.drawArrow(this.xstart, this.ystart, this.xend, this.yend, weight=this.weight, directional=this.directional);
+      this.context.ctx.strokeStyle = temp_color;
 
     }
 
@@ -553,32 +554,32 @@ Graph._node = function(context, x=false, y=false, r=false, text=""){
 
     this.children = [];
     this.edges = {};
-
+    this.context = context;
     this.root = true;
     this.active = false;
     this.value = null;
     this.func = null;
     this.args = [];
     let date = new Date();
-    this.id = date.getTime()+Object.keys(context.objs).length;
+    this.id = date.getTime()+Object.keys(this.context.objs).length;
     
     this.delete = function(){
-      for(let i = context.edges.length-1; i>-1; i--){
+      for(let i = this.context.edges.length-1; i>-1; i--){
         
-        let edge = context.edges[i];
+        let edge = this.context.edges[i];
 
         if(edge.startNodeid === this.id || edge.endNodeid === this.id){
           
-          context.edges.splice(i,1);
+          this.context.edges.splice(i,1);
           
         }
       }
       
-      context.active = null;
+      this.context.active = null;
       let temp_id = this.id;
-      delete context.objs[this.id];
+      delete this.context.objs[this.id];
 
-      for(n of Object.values(context.objs)){
+      for(n of Object.values(this.context.objs)){
 
         position = n.children.indexOf(temp_id);
         if(position !== -1){
@@ -605,7 +606,7 @@ Graph._node = function(context, x=false, y=false, r=false, text=""){
         this.text = text;
         this.active = false;
 
-        context.objs[this.id] = this;
+        this.context.objs[this.id] = this;
         this.build();
 
         if(this.text in Graph.functions){
@@ -630,14 +631,14 @@ Graph._node = function(context, x=false, y=false, r=false, text=""){
     
     this.build = function(){
       if(this.active){
-        context.ctx.lineWidth = 10;
+        this.context.ctx.lineWidth = 10;
       }else{
-        context.ctx.linewidth = 1;
+        this.context.ctx.linewidth = 1;
       }
-      context.ctx.strokeStyle = this.color;
+      this.context.ctx.strokeStyle = this.color;
       
-      if(context.active == this){
-        context.ctx.strokeStyle = "#aaa";
+      if(this.context.active == this){
+        this.context.ctx.strokeStyle = "#aaa";
       }
       if(this.role == "number"){
         this.text_color = '#0000FF';
@@ -645,16 +646,16 @@ Graph._node = function(context, x=false, y=false, r=false, text=""){
       if(this.func !== null){
         this.text_color = "#FF0000";
       }
-    	context.ctx.textAlign = "center";
-      context.ctx.font="15px Arial"; 
-    	context.ctx.beginPath();
-		  context.ctx.arc(this.x,this.y,this.r,0, 2*Math.PI);
-      context.ctx.closePath();
-		  context.ctx.stroke();
-      let temp = context.ctx.fillStyle;
-		  context.ctx.fillStyle = this.text_color;
-      context.ctx.fillText(this.text, this.x,this.y);
-      context.ctx.fillStyle = temp;
+    	this.context.ctx.textAlign = "center";
+      this.context.ctx.font="15px Arial"; 
+    	this.context.ctx.beginPath();
+		  this.context.ctx.arc(this.x,this.y,this.r,0, 2*Math.PI);
+      this.context.ctx.closePath();
+		  this.context.ctx.stroke();
+      let temp = this.context.ctx.fillStyle;
+		  this.context.ctx.fillStyle = this.text_color;
+      this.context.ctx.fillText(this.text, this.x,this.y);
+      this.context.ctx.fillStyle = temp;
         
    
       
@@ -672,13 +673,13 @@ Graph._node = function(context, x=false, y=false, r=false, text=""){
         n.children.push(this.id);
       }
 
-      let edge = context.edge(this.id, n.id, color="#000", weight=w);
+      let edge = this.context.edge(this.id, n.id, color="#000", weight=w);
       this.edges[edge.id]
-      context.edges.push(edge);
+      this.context.edges.push(edge);
 
       n.kill_root();
       
-      context.drawEdges();
+      this.context.drawEdges();
     }
     this.kill_root = function(){
       this.root = false;
@@ -698,7 +699,7 @@ Graph._node = function(context, x=false, y=false, r=false, text=""){
 
       let xstart = this.x + xflip*Math.cos(Math.atan(slope))*this.r;
       let ystart = this.y + yflip*Math.sin(Math.atan(slope))*this.r;
-      context.edge.drawArrow(xstart, ystart, x2, y2, weight=weight)
+      this.context.drawArrow(xstart, ystart, x2, y2, weight=weight)
     }
     
     
@@ -721,7 +722,7 @@ Graph._node = function(context, x=false, y=false, r=false, text=""){
       
       if(this.value){
         for(let i = 0; i<this.children.length; i++){
-          let child = context.getNodeById(this.children[i])
+          let child = this.context.getNodeById(this.children[i])
           child.feed(this.value);
           
         }
@@ -737,7 +738,7 @@ Graph._node = function(context, x=false, y=false, r=false, text=""){
         this.value = this.func.apply(this.value, this.args);
         
         for(let i=0; i<this.children.length; i++){
-          let child = context.getNodeById(this.children[i])
+          let child = this.context.getNodeById(this.children[i])
           child.feed(this.value);
         }
         this.args = [];
