@@ -59,8 +59,9 @@
         console.log("start");
         console.log("start "+getStartId());
         console.log("end "+getEndId());
-        let thing = await nodeking.breadthFirstSearch(getStartId(), getEndId(), true, delay);
-        console.log("done")
+        let thing = await nodeking.diijkstra(getStartId(), getEndId(), true, delay);
+        console.log("here we go: ")
+        console.log(thing)
         
       }
       function log_all_values(){

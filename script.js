@@ -4,6 +4,7 @@ class Graph{
   static priorityQueue = function(){
       this.items = {}
       this.queue = []
+      this.length = 0
       this.insert = function(item, value, lookupid=null){
         if(lookupid !== null){
           this.items[lookupid] = {item:item, value:value};
@@ -22,6 +23,7 @@ class Graph{
         }
         let index = this._binarySearch(value)
         this.queue.splice(index, 0, {value:value, item:item, lookupid:lookupid})
+        this.length +=1;
       }
       this._binarySearch =function(ranking){
         let start = 0
@@ -58,7 +60,10 @@ class Graph{
         }
         return false;
       }
-      this.getitem = function (index){
+      this.getItemByKey = function(lookupid){
+        return this.items[lookupid];
+      }
+      this.getItemByIndex = function (index){
         return this.queue[index];
       }
       this.getIndex = function(lookupid){
@@ -83,7 +88,9 @@ class Graph{
           let index = this.getIndex(lookupid)
           this.queue.splice(index, 1)
           delete this.items[lookupid]
+          this.length -=1
         }
+        
 
       }
 
@@ -397,29 +404,78 @@ class Graph{
     let start = this.getNodeById(startid);
     let end = this.getNodeById(endid);
     let visited = {}
+    let data = {}
     let discovered = new Graph.priorityQueue();
 
-    function dataCard(nodeid, cost, viaid){
+    function dataCard(nodeid, viaid, cost){
       this.nodeid = nodeid;
       this.cost = cost;
       this.viaid = viaid;
     }
 
     function evaluateNode(nodeid, cost){
+      console.log("evaluating node")
       if(visited[nodeid] !== undefined){
         return;
       }
       let root = this.getNodeById(nodeid);
-      for(node of root.children){
+      
+      
+      for(let i = 0; i<root.children.length; i++){
+        console.log("at least im here")
+        let node = this.getNodeById(root.children[i])
         if(visited[node.id] !== undefined){ //checks to see if node is visited
           continue;
         }
-        let edge = this.getEdge(root.id, node.id);
-        let weigh = edge.weigh;
+        let weight = Number(this.getEdge(root.id, node.id).weight);
+        console.log("weight is "+weight)
+        console.log("cost is "+cost)
         let card = new dataCard(node.id, root.id, cost+weight);
+        let key = node.id;
+      
+        if(discovered.hasItem(key)){
+          let oldItem = discovered.getItemByKey(key);
+          if(oldItem.item.cost > card.cost){
+            discovered.replace(card, card.cost, key)
+          }
+        }
+        else{
+          
+          discovered.insert(card, card.cost, key);
+        }
         
       }
     }
+    evaluateNode = evaluateNode.bind(this);
+    discovered.insert(new dataCard(startid, startid, 0))
+    console.log(discovered.queue.length)
+
+    while(discovered.queue.length > 0){
+      
+      let current_node = discovered.dequeue()
+      if(current_node.item.nodeid === endid){
+        let output = {cost:current_node.item.cost, path:[]}
+        output.path.unshift(current_node.item.nodeid)
+        console.log(discovered)
+        while(current_node.item.nodeid !== startid){
+          current_node = visited[current_node.item.viaid];
+          console.log(current_node)
+          output.path.unshift(current_node.item.nodeid)
+        }
+        if(draw_path){
+          for(let i= 0; i<output.path.length-1; i++){
+            this.getEdge(output.path[i], output.path[i+1]).setColor("red");
+          }
+        }
+        
+        return output;
+      }
+      let nodeid = current_node.item.nodeid
+      evaluateNode(current_node.item.nodeid, current_node.item.cost);
+      visited[nodeid] = current_node;
+
+    }
+
     
     
     
@@ -537,7 +593,7 @@ class Graph{
 }
 
 
-Graph._edge = function(contextid, startNodeid, endNodeid, color="#aaa", weight=null, directional=false){
+Graph._edge = function(contextid, startNodeid, endNodeid, color="#aaa", weight=0, directional=false){
     this.contextid = contextid
     this.startNodeid = startNodeid;
     this.endNodeid = endNodeid;
