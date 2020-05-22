@@ -9,9 +9,7 @@
   <body>
    
     <canvas width="500" height="500" id="canvas">not supported</canvas>
-    <br>
-    </br>
-    <canvas width="600" height="300" id="canvas2">not supported</canvas>
+
    
     
     <script src="script.js">
@@ -24,12 +22,27 @@
     <br>
     <button id="reset_button">reset</button>
     <button id="breadth first">Breadth First Search</button>
+    <button id="diijkstra">Diijkstra</button>
+    <button id="setDirectional">set Directional</button>
+    <button id="setBiDirectional">set BiDirectional</button>
+    <br>
+    <br>
+    <canvas width="600" height="300" id="canvas2">not supported</canvas>
+    <br>
+    <br>
+    <canvas width="600" height="600" id="canvas3">not supported</canvas>
     <script>
 
       let breadth_first_button = document.getElementById("breadth first");
       let reset_button = document.getElementById("reset_button");
+      let diijkstra_button = document.getElementById("diijkstra");
+      let setDirectional_button = document.getElementById("setDirectional");
+      let setBiDirectional_button = document.getElementById("setBiDirectional");
       breadth_first_button.addEventListener('click', breadth_wrapper);
+      diijkstra_button.addEventListener('click', diijkstra_wrapper);
       reset_button.addEventListener('click', reset);
+      setDirectional.addEventListener('click', ()=>nodeking.setDirectional());
+      setBiDirectional.addEventListener('click', ()=>nodeking.setBiDirectional());
 
 
       const sleep = (milliseconds) => {
@@ -52,6 +65,14 @@
         nodeking.edges.map(edge => edge.color = "black");
       }
 
+      async function diijkstra_wrapper(){
+        reset();
+        console.log("here we go")
+        let thing = await nodeking.diijkstra(getStartId(), getEndId(), true);
+        
+        console.log(thing)
+      }
+
       async function breadth_wrapper(){
         reset();
         let delay =  Number(document.getElementById("delay").value);
@@ -59,7 +80,7 @@
         console.log("start");
         console.log("start "+getStartId());
         console.log("end "+getEndId());
-        let thing = await nodeking.diijkstra(getStartId(), getEndId(), true, delay);
+        let thing = await nodeking.breadthFirstSearch(getStartId(), getEndId(), true, delay);
         console.log("here we go: ")
         console.log(thing)
         
@@ -71,10 +92,54 @@
     <script>
       let canvas = document.getElementById("canvas");
       let nodeking = new Graph("canvas");
-      let nodeking2 = new Graph("canvas2");
       let start = nodeking.node(100, 100, 40, "start");
+      let medium = nodeking.node(300, 200, 35, "thing");
       let end = nodeking.node(100, 400, 40, "end");
-      start.connect(end);
+
+      start.directional(medium, 13);
+      medium.biDirectional(end, 5);
+      end.directional(start, 1);
+
+      let nodeking2 = new Graph("canvas2");
+
+
+      nodeking2.setNodeCreatedCallback((node)=>{
+        let images = ["https://media1.popsugar-assets.com/files/thumbor/LfOJxhNfU8EftMFF_YPT5Fm5PwQ/263x100:2721x2558/fit-in/2048xorig/filters:format_auto-!!-:strip_icc-!!-/2020/04/06/953/n/1922398/d81efb315e8ba4da48b3b7.11171110_/i/Kevin-Bacon.jpg",
+        "https://pbs.twimg.com/profile_images/1240039886343688192/ddEgtzqr_400x400.jpg",
+        "https://m.media-amazon.com/images/M/MV5BOTQxMTEyMjI0NV5BMl5BanBnXkFtZTgwODE4ODAzMjE@._V1_.jpg",
+        "https://media.npr.org/assets/img/2011/11/22/kevinbacon_custom-008ac9d4aa108bcc152d5813a006362d286d6984-s800-c85.jpg"
+        ]
+        node.setImage(images[Math.floor(Math.random()*images.length)]);
+      
+      })
+      
+      let nodeking3 = new Graph("canvas3");
+      function animateNode(node){
+        let graph = nodeking3;
+        let x = (Math.random()*6)-3;
+        let y = (Math.random()*6)-3;
+        function move(){
+          node.x += x;
+          node.y += y;
+          if(node.x-node.r < 0){
+            x *= -1;
+          }
+          if(node.x+node.r > graph.canvas.width){
+            x *= -1;
+          }
+          if(node.y+node.r > graph.canvas.width){
+            y *= -1
+          }
+          if(node.y-node.r < 0){
+            y *= -1
+          }
+          setTimeout(move, 1000/60)
+        }
+        move()
+      }
+      nodeking3.setNodeCreatedCallback(animateNode)
+
+      
       
     </script>
   </body>

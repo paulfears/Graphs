@@ -111,6 +111,8 @@ class Graph{
       let id_time = new Date().getTime().toString()
       let id_random = Math.round(Math.random()*9999999).toString()
       this.id = Number(id_time+id_random);
+      this.nodeCreatedCallback = ()=>{}
+      this.connectionCreatedCallback = ()=>{}
       Graph.contexts[this.id] = this;
       if(fps == null){
         fps = 60;
@@ -125,6 +127,13 @@ class Graph{
   }
   static getContext(id){
     return Graph.contexts[id];
+  }
+
+  setNodeCreatedCallback(func){
+    this.nodeCreatedCallback = func;
+  }
+  setConnectionCreatedCallback(func){
+    this.connectionCreatedCallback = func;
   }
 
 
@@ -143,12 +152,14 @@ class Graph{
         }
       }
     }
+    return false;
   }
 
   drawArrow(x1,y1,x2,y2, text="", directional=false){
+      
       let headlen = 0; 
       if(directional){
-        let headlen = 10;   // length of head in pixels
+        headlen = 10;   // length of head in pixels
       }
       
       let angle = Math.atan2(y2-y1,x2-x1);
@@ -191,8 +202,18 @@ class Graph{
       }
   }
   
+  getConnectionMode(){
+    return this.connectionMode;
+  }
+  setDirectional(){
+    this.connectionMode = "directional";
+  }
+  setBiDirectional(){
+    this.connectionMode = "biDirectional";
+  }
+
   activate_building(){
-  
+    this.connectionMode = "biDirectional";
     this.canvas.addEventListener("contextmenu", (e)=>e.preventDefault());
     this.building = false;
     this.canvas.addEventListener("mousedown", click_down.bind(this));
@@ -201,6 +222,7 @@ class Graph{
     //node.canvas.addEventListener("dbclick", gui_build);
     this.start = {"x":null, "y":null};
     let action = null;
+
     
     function release_click(e){
       if(e.which == 2){
@@ -211,13 +233,25 @@ class Graph{
           let x_dist = Math.pow(((this.mousex)-this.building_start[0]),2);
           let y_dist = Math.pow(((this.mousey)-this.building_start[1]),2);
           let dist = Math.sqrt(x_dist+y_dist);
-          this.node().create(this.building_start[0], this.building_start[1], dist, "");
+          let newNode = this.node(this.building_start[0], this.building_start[1], dist, "");
+          this.nodeCreatedCallback(newNode); //user hook
           this.building = false;
         }
       }
       if(e.which == 3){
         if(this.active != null){
-          this.start["start_node"].connect(this.active);
+          let existingEdge = this.getEdge(this.start["start_node"].id, this.active.id)
+          if(!existingEdge){
+            let newEdge = null;
+            if(this.connectionMode === "biDirectional"){
+              newEdge = this.start["start_node"].connect(this.active);
+            }
+            else if(this.connectionMode === "directional"){
+              console.log("this far")
+              newEdge = this.start["start_node"].connect(this.active, "", true);
+            }
+            this.connectionCreatedCallback(newEdge);
+          }
         }
         this.connecting = false;
         this.start = {"x":null, "y":null};
@@ -748,12 +782,8 @@ Graph._edge = function(contextid, startNodeid, endNodeid, color="#000", text="",
       }
 
     }
-    this.i = 0
+    
     this.draw = function(){
-      if(this.i%100 == 0){
-      
-      }
-      this.i +=1
       this._updateValues();
       let context = Graph.getContext(this.contextid);
       let temp_color = context.ctx.strokeStyle;
@@ -816,6 +846,8 @@ Graph._node = function(contextid, x=false, y=false, r=false, text=""){
     let time = new Date().getTime().toString();
     this.id = Number(time+Object.keys(Graph.getContext(this.contextid).objs).length+Math.floor(Math.random()*9999));
     this.activeColor = "#aaa";
+    this.image = null;
+    
     
     this.delete = function(){
       let context = Graph.getContext(this.contextid);
@@ -878,6 +910,23 @@ Graph._node = function(contextid, x=false, y=false, r=false, text=""){
       this.build();
       
     }
+
+    this.setImage = async function(url){
+      function createImage(url){
+        console.log("here")
+        return new Promise(
+          function(resolve, reject){
+            let img = new Image()
+            img.onload = ()=>{console.log("yes"); resolve(img)};
+            img.onerror = ()=>{console.log("image failed to load"); reject()};
+            img.src = url;
+          }
+        );
+      }
+      this.image = await createImage(url);
+
+
+    }
     
     this.build = function(){
       let context = Graph.getContext(this.contextid);
@@ -900,6 +949,24 @@ Graph._node = function(contextid, x=false, y=false, r=false, text=""){
 		  context.ctx.arc(this.x,this.y,this.r,0, 2*Math.PI);
       context.ctx.closePath();
 		  context.ctx.stroke();
+      
+      if(this.image){
+        
+        context.ctx.save()
+        context.ctx.beginPath();
+        context.ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2, true);
+        context.ctx.closePath();
+        context.ctx.clip();
+
+        context.ctx.drawImage(this.image, this.x-this.r, this.y-this.r, this.r*2, this.r*2);
+
+        context.ctx.beginPath();
+        context.ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2, true);
+        context.ctx.clip();
+        context.ctx.closePath();
+        context.ctx.restore();
+
+      }
       let temp = context.ctx.fillStyle;
 		  context.ctx.fillStyle = this.text_color;
       context.ctx.fillText(this.text, this.x,this.y);
@@ -909,25 +976,29 @@ Graph._node = function(contextid, x=false, y=false, r=false, text=""){
     
     
     
-    this.connect = function(n, text = "", biDirectional=true){
+    this.connect = function(n, text = "", directional=false){
       let context = Graph.getContext(this.contextid);
       if(n==this){
         return false;
       }
-      if(biDirectional === true){
-        this.children.push(n.id);
+      this.children.push(n.id);
+      if(directional === false){
         n.children.push(this.id);
       }
-      
-
-      let edge = context.edge(this.id, n.id, color="#000", text=text);
+      let edge = context.edge(this.id, n.id, color="#000", text=text, directional=directional);
       this.edges[edge.id]
       context.edges.push(edge);
-
       n.kill_root();
-      
       context.drawEdges();
+      return edge;
     }
+    this.biDirectional = function(n, text = ""){
+      return this.connect(n, text)
+    }
+    this.directional = function(n, text = ""){
+      return this.connect(n, text, true)
+    }
+
     this.kill_root = function(){
       this.root = false;
     }
