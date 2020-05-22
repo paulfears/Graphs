@@ -114,6 +114,7 @@
       })
       
       let nodeking3 = new Graph("canvas3");
+      let edges = []
       function animateNode(node){
         let graph = nodeking3;
         let x = (Math.random()*6)-3;
@@ -133,11 +134,21 @@
           if(node.y-node.r < 0){
             y *= -1
           }
+          for(edge of object.Values){
+            edge.setText(Math.round(nodeking3.getDistance(edge.getStartid(), edge.getEndid())))
+          }
           setTimeout(move, 1000/60)
         }
         move()
       }
-      nodeking3.setNodeCreatedCallback(animateNode)
+      function addEdge(edge){
+        edges.push(edge);
+      }
+      nodeking3.setNodeSetupCallback(animateNode)
+      nodeking3.setConnectionCreatedCallback(addEdge)
+      let A = nodeking3.node(100, 100, 20)
+      let B = nodeking3.node(200, 200, 20)
+      A.connect
 
       
       

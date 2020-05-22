@@ -1,6 +1,9 @@
 class Graph{
 
   static contexts = {}
+  static getContext(id){
+    return Graph.contexts[id];
+  }
   static priorityQueue = function(){
       this.items = {}
       this.queue = []
@@ -113,6 +116,10 @@ class Graph{
       this.id = Number(id_time+id_random);
       this.nodeCreatedCallback = ()=>{}
       this.connectionCreatedCallback = ()=>{}
+      this.connectionSetupCallback = ()=>{}
+      this.nodeSetupCallback = ()=>{}
+      this.tickCallback = ()=>{}
+
       Graph.contexts[this.id] = this;
       if(fps == null){
         fps = 60;
@@ -125,14 +132,21 @@ class Graph{
         this.activate_building();
       }
   }
-  static getContext(id){
-    return Graph.contexts[id];
-  }
+
 
   setNodeCreatedCallback(func){
     this.nodeCreatedCallback = func;
   }
   setConnectionCreatedCallback(func){
+    this.connectionCreatedCallback = func;
+  }
+  setTickCallback(func){
+    this.tickCallback = func;
+  }
+  setNodeSetupCallback(func){
+    this.nodeSetupCallback = func;
+  }
+  setConnectionSetupCallback(func){
     this.connectionCreatedCallback = func;
   }
 
@@ -247,7 +261,6 @@ class Graph{
               newEdge = this.start["start_node"].connect(this.active);
             }
             else if(this.connectionMode === "directional"){
-              console.log("this far")
               newEdge = this.start["start_node"].connect(this.active, "", true);
             }
             this.connectionCreatedCallback(newEdge);
@@ -371,7 +384,6 @@ class Graph{
   async breadthFirstSearch(startid, endid, draw_path=true, delay=0){
       let start = this.getNodeById(startid);
       let end = this.getNodeById(endid);
-      console.log(delay);
       let discovered = [start];
       let visited = [];
       let current = start;
@@ -420,8 +432,6 @@ class Graph{
         for(let i = 0; i<stacks[current.id].length-1; i++){
           path_list = stacks[current.id];
           if(draw_path){
-            console.log(path_list);
-
             this.getEdge(path_list[i], path_list[i+1]).setColor("red");
           }
 
@@ -430,7 +440,6 @@ class Graph{
         return path_list;
       }
       else{
-        console.log("failed")
         return [];
       }
 
@@ -451,14 +460,10 @@ class Graph{
     }
 
     function evaluateNode(nodeid, cost){
-      console.log("evaluating node")
       if(visited[nodeid] !== undefined){
         return;
       }
       let root = this.getNodeById(nodeid);
-      console.log(root)
-      
-      
       for(let i = 0; i<root.children.length; i++){
         let node = this.getNodeById(root.children[i])
         if(visited[node.id] !== undefined){ //checks to see if node is visited
@@ -501,7 +506,6 @@ class Graph{
             this.getEdge(output.path[i], output.path[i+1]).setColor("red");
           }
         }
-        console.log(output)
         return output;
       }
       let nodeid = current_node.item.nodeid
@@ -546,6 +550,7 @@ class Graph{
       this.ctx.closePath();
       this.ctx.stroke();
     }
+    this.tickCallback(this);
 
     
   }
@@ -559,6 +564,14 @@ class Graph{
       this.ctx.strokeStyle = this.color;
       edge.draw();
     }
+  }
+
+  getDistance(startNodeId, endNodeId){
+    let start = this.getNodeById(startNodeId)
+    let end = this.getNodeById(endNodeId)
+
+    return Math.sqrt( Math.pow(end.y-start.y, 2) + Math.pow(end.x-start.x, 2) )
+
   }
 
   activate_editing(fps){
@@ -618,7 +631,9 @@ class Graph{
     return new Graph._edge(this.id, startNodeid, endNodeid, color=color, text=text, directional=directional);
   }
   node(x=false, y=false, r=false, text=""){
-    return new Graph._node(this.id, x=x, y=y, r=r, text=text);
+    let node = new Graph._node(this.id, x=x, y=y, r=r, text=text);
+    this.nodeSetupCallback(node);
+    return node;
   }
 
 
@@ -701,21 +716,14 @@ Graph._edge = function(contextid, startNodeid, endNodeid, color="#000", text="",
       let end = context.getNodeById(this.endNodeid)
       delete start.edges[this.id];
       delete end.edges[this.id];
-      console.log(start.children)
       for(let i = 0; i<start.children.length; i++){
-        console.log(start.children[i])
         if(start.children[i] === this.endNodeid){
-          console.log("about to splice")
           start.children.splice(i,1)
           break
         }
       }
       if(this.isBiDirectional()){
-        console.log("here")
-        
-        console.log(this.startNodeid)
         for(let i = 0; i<end.children.length; i++){
-          console.log(end.children[i])
           if(end.children[i] === this.startNodeid){
             
             end.children.splice(i,1)
@@ -737,11 +745,12 @@ Graph._edge = function(contextid, startNodeid, endNodeid, color="#000", text="",
       this.color = color;
     }
 
-    this.drawTo = function(x,y){
-
+    this.getStartid = function(){
+      return this.startNodeid;
     }
-
-
+    this.getEndid = function(){
+      return this.endNodeid;
+    }
 
 
     this._updateValues = function(slope = null){
@@ -876,6 +885,10 @@ Graph._node = function(contextid, x=false, y=false, r=false, text=""){
 
     }
 
+    this.getEdges = function(){
+      return this.edges;
+    }
+
     this.setColor = function(newColor){
       this.color = newColor;
     }
@@ -914,12 +927,11 @@ Graph._node = function(contextid, x=false, y=false, r=false, text=""){
 
     this.setImage = async function(url){
       function createImage(url){
-        console.log("here")
         return new Promise(
           function(resolve, reject){
             let img = new Image()
-            img.onload = ()=>{console.log("yes"); resolve(img)};
-            img.onerror = ()=>{console.log("image failed to load"); reject()};
+            img.onload = ()=>{resolve(img)};
+            img.onerror = ()=>{console.log("image load error"); reject()};
             img.src = url;
           }
         );
@@ -1026,50 +1038,6 @@ Graph._node = function(contextid, x=false, y=false, r=false, text=""){
       let ystart = this.y + yflip*Math.sin(Math.atan(slope))*this.r;
       context.drawArrow(xstart, ystart, x2, y2, text=text)
     }
-    
-    
-    
-    this.set_func = function(func){
-      this.func = func;
-      this.input_num = func.length;
-      this.text = this.func.name;
-      this.args = [];
-      
-    }
-    
-    this.feed = function(arg){
-      
-      let context = Graph.getContext(this.contextid);
-
-      if(this.value == null && this.func == null){
-        return false;
-      }
-      
-      if(this.value){
-        for(let i = 0; i<this.children.length; i++){
-          let child = context.getNodeById(this.children[i])
-          child.feed(this.value);
-          
-        }
-        return null;
-      }
-      
-      if(this.args.length<this.func.length){
-        this.args.push(arg);
-        
-        
-      }
-      if(this.args.length==(this.func.length)){
-        this.value = this.func.apply(this.value, this.args);
-        
-        for(let i=0; i<this.children.length; i++){
-          let child = context.getNodeById(this.children[i])
-          child.feed(this.value);
-        }
-        this.args = [];
-      }
-    }
-    
     
     this.inside = function(x,y, yoffset, xoffset){ //returns bool
       function distance(x1,x2,y1,y2){
