@@ -239,7 +239,7 @@ class Graph{
         }
       }
       if(e.which == 3){
-        if(this.active != null){
+        if(this.active != null && this.start["start_node"]){
           let existingEdge = this.getEdge(this.start["start_node"].id, this.active.id)
           if(!existingEdge){
             let newEdge = null;
@@ -272,9 +272,10 @@ class Graph{
       if(e.which == 3){
         this.start = {"x":null, "y":null};
         
+        
         this.start = {"x":this.mousex,"y":this.mousey, "active":this.active};
         
-        if(this.active != null){
+        if(this.active != null && this.active.type === "node"){
           
           this.connecting = false;
           this.start["action"] = "connect";
@@ -1014,6 +1015,12 @@ Graph._node = function(contextid, x=false, y=false, r=false, text=""){
       }
       
       let slope = (y2-this.y)/(x2-this.x);
+      if(this.slope === Infinity){
+        yflip*=-1;
+      }
+      if(this.slope === -Infinity){
+        yflip*=-1;
+      }
 
       let xstart = this.x + xflip*Math.cos(Math.atan(slope))*this.r;
       let ystart = this.y + yflip*Math.sin(Math.atan(slope))*this.r;
