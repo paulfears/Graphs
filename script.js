@@ -263,7 +263,9 @@ class Graph{
             else if(this.connectionMode === "directional"){
               newEdge = this.start["start_node"].connect(this.active, "", true);
             }
-            this.connectionCreatedCallback(newEdge);
+            if(newEdge){
+              this.connectionCreatedCallback(newEdge);
+            }
           }
         }
         this.connecting = false;
