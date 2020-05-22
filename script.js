@@ -562,6 +562,10 @@ class Graph{
     return this.objs[id];
   }
 
+  getEdgeById(id){
+    return this.edges[id];
+  }
+
   drawEdges(){
     for(let edge of Object.values(this.edges)){
       this.ctx.strokeStyle = this.color;
@@ -1023,10 +1027,10 @@ Graph._node = function(contextid, x=false, y=false, r=false, text=""){
       }
       
       let slope = (y2-this.y)/(x2-this.x);
-      if(this.slope === Infinity){
+      if(slope === Infinity){
         yflip*=-1;
       }
-      if(this.slope === -Infinity){
+      if(slope === -Infinity){
         yflip*=-1;
       }
 
