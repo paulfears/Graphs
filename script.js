@@ -110,7 +110,7 @@ class Graph{
       this.canvas = document.getElementById(canvasid);
       this.ctx = this.canvas.getContext('2d');
       this.objs = {};
-      this.edges = [];
+      this.edges = {};
       let id_time = new Date().getTime().toString()
       let id_random = Math.round(Math.random()*9999999).toString()
       this.id = Number(id_time+id_random);
@@ -156,13 +156,13 @@ class Graph{
   }
 
   getEdge(parentid, childid){
-    for(let edge of this.edges){
+    for(let edge of Object.values(this.edges)){
       if(edge.startNodeid === parentid && edge.endNodeid === childid){
-        return edge;
+        return this.edges[edge.id];
       }
       if(edge.isBiDirectional()){
         if(edge.endNodeid === parentid && edge.startNodeid === childid){
-          return edge
+          return this.edges[edge.id]
         }
       }
     }
@@ -351,16 +351,16 @@ class Graph{
           
         }
       }
-      for(let i = 0; i<this.edges.length; i++){
-        if(this.edges[i].inside(this.mousex, this.mousey)){
+      for(let edge of Object.values(this.edges)){
+        if(edge.inside(this.mousex, this.mousey)){
           document.body.style.cursor = "pointer";
-          this.active = this.edges[i];
-          this.edges[i].selected = true;
+          this.active = edge;
+          edge.selected = true;
           return;
         }
         else{
-          if(this.edges[i].selected){
-            this.edges[i].selected = false;
+          if(edge.selected){
+            edge.selected = false;
           }
         }
       }
@@ -508,6 +508,7 @@ class Graph{
             this.getEdge(output.path[i], output.path[i+1]).setColor("red");
           }
         }
+        console.log(output)
         return output;
       }
       let nodeid = current_node.item.nodeid
@@ -562,7 +563,7 @@ class Graph{
   }
 
   drawEdges(){
-    for(let edge of this.edges){
+    for(let edge of Object.values(this.edges)){
       this.ctx.strokeStyle = this.color;
       edge.draw();
     }
@@ -650,7 +651,7 @@ Graph._edge = function(contextid, startNodeid, endNodeid, color="#000", text="",
     this.startNodeid = startNodeid;
     this.endNodeid = endNodeid;
     let id_time = new Date().getTime()
-    this.id = Number(id_time.toString()+(Graph.getContext(this.contextid).edges.length).toString()) //inline concatination
+    this.id = Number(id_time.toString()+(Object.values(Graph.getContext(this.contextid).edges).length).toString()+Math.random().toString()) //inline concatination
     this.slope;
     this.color = color;
     this.altColor = "#aaa"
@@ -733,12 +734,7 @@ Graph._edge = function(contextid, startNodeid, endNodeid, color="#000", text="",
           }
         }
       }
-      for(let i = 0; i<context.edges.length; i++){
-        if(context.edges[i].id === this.id){
-          context.edges.splice(i,1)
-
-        }
-      }
+      delete context.edges[this.id];
       delete this
 
     }
@@ -863,12 +859,10 @@ Graph._node = function(contextid, x=false, y=false, r=false, text=""){
     
     this.delete = function(){
       let context = Graph.getContext(this.contextid);
-      for(let i = context.edges.length-1; i>-1; i--){
-        
-        let edge = context.edges[i];
+      for(let edge of Object.values(context.edges)){
 
         if(edge.startNodeid === this.id || edge.endNodeid === this.id){
-          context.edges.splice(i,1);
+          delete context.edges[edge.id];
         }
       }
       
@@ -1002,7 +996,7 @@ Graph._node = function(contextid, x=false, y=false, r=false, text=""){
       }
       let edge = context.edge(this.id, n.id, color="#000", text=text, directional=directional);
       this.edges[edge.id]
-      context.edges.push(edge);
+      context.edges[edge.id] = edge;
       n.kill_root();
       context.drawEdges();
       return edge;

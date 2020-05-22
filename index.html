@@ -62,7 +62,7 @@
       }
 
       function reset(){
-        nodeking.edges.map(edge => edge.color = "black");
+        Object.values(nodeking.edges).map(edge => edge.color = "black");
       }
 
       async function diijkstra_wrapper(){
