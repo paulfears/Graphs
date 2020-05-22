@@ -31,6 +31,9 @@
     <br>
     <br>
     <canvas width="600" height="600" id="canvas3">not supported</canvas>
+    <br>
+    <br>
+    <canvas width="500", height="500" id="canvas4">not supported</canvas>
     <script>
 
       let breadth_first_button = document.getElementById("breadth first");
@@ -114,7 +117,7 @@
       })
       
       let nodeking3 = new Graph("canvas3");
-      let edges = []
+      
       function animateNode(node){
         let graph = nodeking3;
         let x = (Math.random()*6)-3;
@@ -134,21 +137,43 @@
           if(node.y-node.r < 0){
             y *= -1
           }
-          for(edge of edges){
-            edge.setText(Math.round(nodeking3.getDistance(edge.getStartid(), edge.getEndid())))
+          
+          for(let key of Object.keys(node.edges)){
+            nodeking3.getEdgeById(key).setText(Math.round(nodeking3.getDistance(node.id, node.edges[key])))
           }
           setTimeout(move, 1000/60)
         }
         move()
       }
-      function addEdge(edge){
-        edges.push(edge);
-      }
+      
       nodeking3.setNodeSetupCallback(animateNode)
-      nodeking3.setConnectionCreatedCallback(addEdge)
-      let A = nodeking3.node(100, 100, 20)
-      let B = nodeking3.node(200, 200, 20)
-      A.connect
+      let tick = 0;
+      function doDiijkstra(graph){
+        tick +=1
+        if(tick % 20 == 0){
+          Object.values(graph.edges).map(edge => edge.setColor("black"));
+          graph.diijkstra(graph.A.id, graph.B.id)
+        }
+      }
+      nodeking3.setTickCallback(doDiijkstra)
+      nodeking3.A = nodeking3.node(100, 100, 20, "A")
+      nodeking3.B = nodeking3.node(200, 200, 20, "B")
+      nodeking3.C = nodeking3.node(46, 60, 20)
+      nodeking3.D = nodeking3.node(370, 285, 20)
+      nodeking3.E = nodeking3.node(250, 90, 20)
+      nodeking3.F = nodeking3.node(400, 370, 20)
+      nodeking3.A.connect(nodeking3.C)
+      nodeking3.C.connect(nodeking3.D)
+      nodeking3.C.connect(nodeking3.E)
+      nodeking3.E.directional(nodeking3.D)
+      nodeking3.A.connect(nodeking3.E)
+      nodeking3.D.connect(nodeking3.F)
+      nodeking3.F.connect(nodeking3.B)
+      nodeking3.B.connect(nodeking3.D)
+
+      //let bigdata = nodeking.save();
+
+      //Graph.load(bigdata, "canvas4")
 
       
       

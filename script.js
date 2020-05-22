@@ -4,6 +4,18 @@ class Graph{
   static getContext(id){
     return Graph.contexts[id];
   }
+
+  static load(jsonString, canvasid){
+    let context = JSON.parse(jsonString);
+    context.canvas = document.getElementById(canvasid);
+    context.ctx = context.canvas.getContext('2d');
+    console.log(context)
+    let id_time = new Date().getTime().toString()
+    let id_random = Math.round(Math.random()*9999999).toString()
+    context.id = Number(id_time+id_random);
+    Graph
+  }
+
   static priorityQueue = function(){
       this.items = {}
       this.queue = []
@@ -106,11 +118,13 @@ class Graph{
       }
       
   }
-  constructor(canvasid, fps=60, editable=true, buildable=true){
+  constructor(canvasid, fps=60, editable=true, buildable=true, customid=null){
       this.canvas = document.getElementById(canvasid);
       this.ctx = this.canvas.getContext('2d');
       this.objs = {};
       this.edges = {};
+      this.vars = {}; //area for the user to store variables
+      
       let id_time = new Date().getTime().toString()
       let id_random = Math.round(Math.random()*9999999).toString()
       this.id = Number(id_time+id_random);
@@ -119,16 +133,19 @@ class Graph{
       this.connectionSetupCallback = ()=>{}
       this.nodeSetupCallback = ()=>{}
       this.tickCallback = ()=>{}
-
+      this.editable = editable
+      this.fps = fps
+      this.buildable = buildable
       Graph.contexts[this.id] = this;
-      if(fps == null){
-        fps = 60;
+      
+      if(this.fps == null){
+        this.fps = 60;
       }
-      if(editable == true){
+      if(this.editable == true){
         this.check_mouse();
-        this.activate_editing(fps);
+        this.activate_editing(this.fps);
       }
-      if(buildable == true){
+      if(this.buildable == true){
         this.activate_building();
       }
   }
@@ -150,6 +167,9 @@ class Graph{
     this.connectionCreatedCallback = func;
   }
 
+  save(){
+    return JSON.stringify(this, (key, value)=>{console.log(key); console.log(value)});
+  }
 
   getChildrenByText(text){
     return Object.values(this.objs).filter((node) => node.text === text);
@@ -508,7 +528,6 @@ class Graph{
             this.getEdge(output.path[i], output.path[i+1]).setColor("red");
           }
         }
-        console.log(output)
         return output;
       }
       let nodeid = current_node.item.nodeid
@@ -992,6 +1011,9 @@ Graph._node = function(contextid, x=false, y=false, r=false, text=""){
     this.connect = function(n, text = "", directional=false){
       let context = Graph.getContext(this.contextid);
       if(n==this){
+        return false;
+      }
+      if(n.type !== "node"){
         return false;
       }
       this.children.push(n.id);
