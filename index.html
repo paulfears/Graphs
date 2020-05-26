@@ -119,9 +119,13 @@
       let nodeking3 = new Graph("canvas3");
       
       function animateNode(node){
-        let graph = nodeking3;
+        console.log("-->")
+        console.log(node.contextid)
+        let graph = Graph.getContext(node.contextid);
+        console.log(graph)
         let x = (Math.random()*6)-3;
         let y = (Math.random()*6)-3;
+        
         function move(){
           node.x += x;
           node.y += y;
@@ -139,7 +143,7 @@
           }
           
           for(let key of Object.keys(node.edges)){
-            nodeking3.getEdgeById(key).setText(Math.round(nodeking3.getDistance(node.id, node.edges[key])))
+            graph.getEdgeById(key).setText(Math.round(nodeking3.getDistance(node.id, node.edges[key])))
           }
           setTimeout(move, 1000/60)
         }
@@ -147,33 +151,36 @@
       }
       
       nodeking3.setNodeSetupCallback(animateNode)
-      let tick = 0;
+      nodeking3.vars.tick = 0;
       function doDiijkstra(graph){
-        tick +=1
-        if(tick % 20 == 0){
+        graph.vars.tick +=1
+        if(graph.vars.tick % 20 == 0){
           Object.values(graph.edges).map(edge => edge.setColor("black"));
-          graph.diijkstra(graph.A.id, graph.B.id)
+          graph.diijkstra(graph.vars.A.id, graph.vars.B.id)
         }
       }
       nodeking3.setTickCallback(doDiijkstra)
-      nodeking3.A = nodeking3.node(100, 100, 20, "A")
-      nodeking3.B = nodeking3.node(200, 200, 20, "B")
-      nodeking3.C = nodeking3.node(46, 60, 20)
-      nodeking3.D = nodeking3.node(370, 285, 20)
-      nodeking3.E = nodeking3.node(250, 90, 20)
-      nodeking3.F = nodeking3.node(400, 370, 20)
-      nodeking3.A.connect(nodeking3.C)
-      nodeking3.C.connect(nodeking3.D)
-      nodeking3.C.connect(nodeking3.E)
-      nodeking3.E.directional(nodeking3.D)
-      nodeking3.A.connect(nodeking3.E)
-      nodeking3.D.connect(nodeking3.F)
-      nodeking3.F.connect(nodeking3.B)
-      nodeking3.B.connect(nodeking3.D)
+      nodeking3.vars.A = nodeking3.node(100, 100, 20, "A")
+      nodeking3.vars.B = nodeking3.node(200, 200, 20, "B")
+      nodeking3.vars.C = nodeking3.node(46, 60, 20)
+      nodeking3.vars.D = nodeking3.node(370, 285, 20)
+      nodeking3.vars.E = nodeking3.node(250, 90, 20)
+      nodeking3.vars.F = nodeking3.node(400, 370, 20)
+      nodeking3.vars.A.connect(nodeking3.vars.C)
+      nodeking3.vars.C.connect(nodeking3.vars.D)
+      nodeking3.vars.C.connect(nodeking3.vars.E)
+      nodeking3.vars.E.directional(nodeking3.vars.D)
+      nodeking3.vars.A.connect(nodeking3.vars.E)
+      nodeking3.vars.D.connect(nodeking3.vars.F)
+      nodeking3.vars.F.connect(nodeking3.vars.B)
+      nodeking3.vars.B.connect(nodeking3.vars.D)
 
-      //let bigdata = nodeking.save();
+      let bigdata = nodeking3.save();
+      
 
-      //Graph.load(bigdata, "canvas4")
+      let nodeking4 = Graph.load(bigdata, "canvas4")
+      console.log("here")
+      console.log(nodeking4)
 
       
       

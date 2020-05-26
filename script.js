@@ -6,14 +6,39 @@ class Graph{
   }
 
   static load(jsonString, canvasid){
-    let context = JSON.parse(jsonString);
+    function functionfy(key, value){
+        if (typeof value === 'string'){
+
+          if(value.indexOf('function') === 0 || value.indexOf(")=>") !== -1){
+            
+            let functionTemplate = `(${value})`;    
+            return eval(functionTemplate);
+          }  
+        }   
+        return value;
+    }
+    let context = JSON.parse(jsonString, functionfy);
+    
+    
     context.canvas = document.getElementById(canvasid);
     context.ctx = context.canvas.getContext('2d');
-    console.log(context)
+    
     let id_time = new Date().getTime().toString()
     let id_random = Math.round(Math.random()*9999999).toString()
     context.id = Number(id_time+id_random);
-    Graph
+    console.log("context.edges.length is "+context.edges)
+    let edgeKeys = Object.keys(context.edges);
+    for(let i = 0; i < edgeKeys.length; i++){
+      context.edges[edgeKeys[i]].contextid = context.id;
+    }
+    let objKeys = Object.keys(context.objs);
+    for(let i = 0; i<objKeys.length; i++){
+      console.log("__________________contextid________________________")
+      
+      context.objs[objKeys[i]].contextid = context.id;
+    }
+    return new Graph(canvasid, context.fps, context.editable, context.buildable, context)
+    
   }
 
   static priorityQueue = function(){
@@ -118,7 +143,7 @@ class Graph{
       }
       
   }
-  constructor(canvasid, fps=60, editable=true, buildable=true, customid=null){
+  constructor(canvasid, fps=60, editable=true, buildable=true, loadContext=null){
       this.canvas = document.getElementById(canvasid);
       this.ctx = this.canvas.getContext('2d');
       this.objs = {};
@@ -136,6 +161,22 @@ class Graph{
       this.editable = editable
       this.fps = fps
       this.buildable = buildable
+      
+      if(loadContext !== null){
+        
+          this.edges = loadContext.edges;
+          this.vars = loadContext.vars;
+          this.objs = loadContext.objs;
+          this.id = loadContext.id;
+          this.tickCallback = loadContext.tickCallback;
+          this.nodeSetupCallback = loadContext.nodeSetupCallback;
+          this.connectionCreatedCallback = loadContext.connectionCreatedCallback;
+          this.connectionSetupCallback = loadContext.connectionSetupCallback;
+          this.nodeCreatedCallback = loadContext.nodeCreatedCallback;
+
+        
+      }
+      console.log("this.id is "+this.id)
       Graph.contexts[this.id] = this;
       
       if(this.fps == null){
@@ -147,6 +188,14 @@ class Graph{
       }
       if(this.buildable == true){
         this.activate_building();
+      }
+      if(loadContext !== null){
+          for(let edgeid in this.edges){
+            this.connectionSetupCallback(this.edges[edgeid])
+          }
+          for(let nodeid in this.objs){
+            this.nodeSetupCallback(this.objs[nodeid]);
+          }
       }
   }
 
@@ -168,7 +217,13 @@ class Graph{
   }
 
   save(){
-    return JSON.stringify(this, (key, value)=>{console.log(key); console.log(value)});
+    let methodCathcer = function(key, value){
+      if(typeof(value) === "function"){
+        return value.toString();
+      }
+      return value;
+    }
+    return JSON.stringify(this, methodCathcer);
   }
 
   getChildrenByText(text){
@@ -572,6 +627,7 @@ class Graph{
       this.ctx.closePath();
       this.ctx.stroke();
     }
+    
     this.tickCallback(this);
 
     
@@ -825,7 +881,7 @@ Graph._edge = function(contextid, startNodeid, endNodeid, color="#000", text="",
       else{
         context.ctx.strokeStyle = this.color;
       }
-      context.drawArrow(this.xstart, this.ystart, this.xend, this.yend, text=this.text, directional=this.directional);
+      context.drawArrow(this.xstart, this.ystart, this.xend, this.yend, this.text, this.directional);
       context.ctx.strokeStyle = temp_color;
 
     }
