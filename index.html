@@ -23,6 +23,7 @@
     <button id="reset_button">reset</button>
     <button id="breadth first">Breadth First Search</button>
     <button id="diijkstra">Diijkstra</button>
+    <button id="Astar">A*</button>
     <button id="setDirectional">set Directional</button>
     <button id="setBiDirectional">set BiDirectional</button>
     <br>
@@ -39,10 +40,12 @@
       let breadth_first_button = document.getElementById("breadth first");
       let reset_button = document.getElementById("reset_button");
       let diijkstra_button = document.getElementById("diijkstra");
+      let Astar_button = document.getElementById("Astar");
       let setDirectional_button = document.getElementById("setDirectional");
       let setBiDirectional_button = document.getElementById("setBiDirectional");
       breadth_first_button.addEventListener('click', breadth_wrapper);
       diijkstra_button.addEventListener('click', diijkstra_wrapper);
+      Astar_button.addEventListener('click', Astar_wrapper);
       reset_button.addEventListener('click', reset);
       setDirectional.addEventListener('click', ()=>nodeking.setDirectional());
       setBiDirectional.addEventListener('click', ()=>nodeking.setBiDirectional());
@@ -71,8 +74,17 @@
       async function diijkstra_wrapper(){
         reset();
         console.log("here we go")
-        let thing = await nodeking.diijkstra(getStartId(), getEndId(), true);
+        let delay =  Number(document.getElementById("delay").value);
+        let thing = await nodeking.diijkstra(getStartId(), getEndId(), true, delay);
         
+        console.log(thing)
+      }
+
+      async function Astar_wrapper(){
+        reset();
+        console.log("A* or get fucked")
+        let delay =  Number(document.getElementById("delay").value);
+        let thing = await nodeking.Astar(getStartId(), getEndId(), true);
         console.log(thing)
       }
 

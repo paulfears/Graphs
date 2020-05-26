@@ -149,7 +149,6 @@ class Graph{
       this.objs = {};
       this.edges = {};
       this.vars = {}; //area for the user to store variables
-      
       let id_time = new Date().getTime().toString()
       let id_random = Math.round(Math.random()*9999999).toString()
       this.id = Number(id_time+id_random);
@@ -447,7 +446,7 @@ class Graph{
     }
     
     function adjust_scoll(e){
-      
+      //this.px_down = document.body.getBoundingClientRect().top;
       this.px_down = (window.pageYOffset !== undefined) ? window.pageYOffset : (document.documentElement || document.body.parentNode || document.body).scrollTop;
       
     }
@@ -456,6 +455,82 @@ class Graph{
 
     this.canvas.addEventListener("mousemove", check.bind(this));
     document.addEventListener("scroll",adjust_scoll.bind(this));
+  }
+
+  async DepthFirstSearch(startid, endid, draw_path, delay=0){
+    
+  }
+
+  async Astar(startid, endid, draw_path=true, delay=0){
+    
+    let start = this.getNodeById(startid);
+    let end = this.getNodeById(endid);
+    let visited = {}
+    let data = {}
+    let discovered = new Graph.priorityQueue();
+
+    function dataCard(nodeid, viaid, cost, distance){
+      this.nodeid = nodeid;
+      this.cost = cost;
+      this.viaid = viaid;
+      this.distance = distance;
+    }
+
+    function evaluateNode(nodeid, cost){
+      if(visited[nodeid] !== undefined){
+        return;
+      }
+      let root = this.getNodeById(nodeid);
+      for(let i = 0; i<root.children.length; i++){
+        let node = this.getNodeById(root.children[i])
+        if(visited[node.id] !== undefined){ //checks to see if node is visited
+          continue;
+        }
+        let edge = this.getEdge(root.id, node.id);
+        let weight = edge.weight;
+        let card = new dataCard(node.id, root.id, cost+weight, Math.floor(this.getDistance(root.id, end.id))-1);
+        let key = node.id;
+      
+        if(discovered.hasItem(key)){
+          let oldItem = discovered.getItemByKey(key);
+          if(oldItem.item.cost > card.cost){
+            discovered.replace(card, card.cost, key)
+          }
+        }
+        else{
+          
+          discovered.insert(card, card.cost+card.distance, key);
+        }
+        
+      }
+    }
+    evaluateNode = evaluateNode.bind(this);
+    discovered.insert(new dataCard(startid, startid, 0), 0)
+
+    while(discovered.queue.length > 0){
+      
+      let current_node = discovered.dequeue()
+      if(current_node.item.nodeid === endid){
+        let output = {cost:current_node.item.cost, path:[]}
+        output.path.unshift(current_node.item.nodeid)
+        while(current_node.item.nodeid !== startid){
+          current_node = visited[current_node.item.viaid];
+
+          output.path.unshift(current_node.item.nodeid)
+        }
+        if(draw_path){
+          for(let i= 0; i<output.path.length-1; i++){
+            this.getEdge(output.path[i], output.path[i+1]).setColor("red");
+          }
+        }
+        return output;
+      }
+      let nodeid = current_node.item.nodeid
+      evaluateNode(current_node.item.nodeid, current_node.item.cost);
+      visited[nodeid] = current_node;
+
+    }
+
   }
 
   async breadthFirstSearch(startid, endid, draw_path=true, delay=0){
