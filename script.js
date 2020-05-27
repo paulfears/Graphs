@@ -1,9 +1,14 @@
-class Graph{
+  window.onbeforeunload = function () {
+    window.scrollTo(0, 0);
+  }
 
+class Graph{
+  
   static contexts = {}
   static getContext(id){
     return Graph.contexts[id];
   }
+
 
   static load(jsonString, canvasid){
     function functionfy(key, value){
@@ -26,15 +31,12 @@ class Graph{
     let id_time = new Date().getTime().toString()
     let id_random = Math.round(Math.random()*9999999).toString()
     context.id = Number(id_time+id_random);
-    console.log("context.edges.length is "+context.edges)
     let edgeKeys = Object.keys(context.edges);
     for(let i = 0; i < edgeKeys.length; i++){
       context.edges[edgeKeys[i]].contextid = context.id;
     }
     let objKeys = Object.keys(context.objs);
     for(let i = 0; i<objKeys.length; i++){
-      console.log("__________________contextid________________________")
-      
       context.objs[objKeys[i]].contextid = context.id;
     }
     return new Graph(canvasid, context.fps, context.editable, context.buildable, context)
@@ -175,7 +177,6 @@ class Graph{
 
         
       }
-      console.log("this.id is "+this.id)
       Graph.contexts[this.id] = this;
       
       if(this.fps == null){
@@ -457,8 +458,77 @@ class Graph{
     document.addEventListener("scroll",adjust_scoll.bind(this));
   }
 
-  async DepthFirstSearch(startid, endid, draw_path, delay=0){
-    
+  async depthFirstSearch(startid, endid, draw_path, delay=0){
+    console.log("inside function")
+    let discovered_stack = [{"nodeid":startid, "parentid":startid}]
+    let visited = {}
+    function getPath(nodeobj, draw_path=true){
+      let path = []
+      while(nodeobj.nodeid !== nodeobj.parentid){
+        if(draw_path){
+          this.getEdge(nodeobj.parentid, nodeobj.nodeid).setColor("red");
+        }
+        path.unshift(nodeobj.nodeid)
+        nodeobj = visited[nodeobj.parentid]
+      }
+      return path;
+    }
+    getPath = getPath.bind(this);
+    let evaulateNode = function(nodeobject){
+      console.log("here")
+      if(visited.hasOwnProperty(nodeobject.nodeid)){
+        return evaulateNode(discovered_stack.shift());
+      }
+      if(nodeobject.nodeid === endid){
+        return getPath(nodeobject);
+      }
+      visited[nodeobject.nodeid] = nodeobject;
+      let currentNode = this.getNodeById(nodeobject.nodeid)
+      let childrenObjs = currentNode.children.map((nodeid)=>{
+          return {nodeid:nodeid, parentid:currentNode.id}
+      })
+      discovered_stack.unshift(...childrenObjs);
+      evaulateNode(discovered_stack.shift())
+    }
+    evaulateNode = evaulateNode.bind(this);
+    return evaulateNode(discovered_stack.shift());
+  }
+
+  async breadthFirstSearch(startid, endid, draw_path, delay=0){
+    console.log("inside function")
+    let start = this.getNodeById(startid);
+    let end = this.getNodeById(endid);
+    let discovered = [{node:startid, parent:startid}]
+    let visited = {}
+    function getPath(nodeobj, draw_path=true){
+      let path = []
+      while(nodeobj.node !== nodeobj.parent){
+        if(draw_path){
+          this.getEdge(nodeobj.parent, nodeobj.node).setColor("red");
+        }
+        path.unshift(nodeobj.node)
+        nodeobj = visited[nodeobj.parent]
+      }
+      return path;
+    }
+    getPath = getPath.bind(this);
+    console.log(discovered)
+    for(let i = 0; i<discovered.length; i++){
+      if(visited.hasOwnProperty(discovered[i].node)){
+        continue;
+      }
+      if(discovered[i].node === endid){
+        return getPath(discovered[i], draw_path=draw_path)
+      }
+      else{
+        let currentNode = this.getNodeById(discovered[i].node);
+        let childrenObjs = currentNode.children.map((nodeid)=>{
+          return {node:nodeid, parent:discovered[i].node}
+        })
+        discovered.push(...childrenObjs)
+        visited[discovered[i].node] = discovered[i];
+      }
+    }    
   }
 
   async Astar(startid, endid, draw_path=true, delay=0){
@@ -533,69 +603,7 @@ class Graph{
 
   }
 
-  async breadthFirstSearch(startid, endid, draw_path=true, delay=0){
-      let start = this.getNodeById(startid);
-      let end = this.getNodeById(endid);
-      let discovered = [start];
-      let visited = [];
-      let current = start;
-      let stacks = {}
-      stacks[current['id']] = [start.id]
-      let paths = {}
-      
 
-      const sleep = function(millisecounds){
-        return new Promise(resolve => setTimeout(resolve, millisecounds))
-        
-      }
-
-      while(true){
-        await sleep(delay);
-
-        if(current.id === endid){
-          break;
-        }
-        if(!current.children){
-          continue;
-        }
-        for(let child of current.children.map((id)=>this.getNodeById(id))){
-          if(
-            visited.some(node => node.id === child.id)||
-            discovered.some(node => node.id === child.id)       
-            )
-          {
-            //pass
-          }
-          else{
-            discovered.push(child);
-            let temp = [...stacks[current['id']]]
-            temp.push(child.id)
-            stacks[child['id']] = temp;
-          }
-        }
-        let old = current;
-        visited.push(discovered.shift());
-        current = discovered[0];
-        current.setColor("black");
-      }
-
-      if(current.id === endid){
-        let path_list = []
-        for(let i = 0; i<stacks[current.id].length-1; i++){
-          path_list = stacks[current.id];
-          if(draw_path){
-            this.getEdge(path_list[i], path_list[i+1]).setColor("red");
-          }
-
-        }
-        
-        return path_list;
-      }
-      else{
-        return [];
-      }
-
-  }
 
   async diijkstra(startid, endid, draw_path=true){ 
 

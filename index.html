@@ -21,6 +21,7 @@
     <input type="number" value="0" id="delay">
     <br>
     <button id="reset_button">reset</button>
+    <button id="dfs">Depth first search</button>
     <button id="breadth first">Breadth First Search</button>
     <button id="diijkstra">Diijkstra</button>
     <button id="Astar">A*</button>
@@ -36,13 +37,14 @@
     <br>
     <canvas width="500", height="500" id="canvas4">not supported</canvas>
     <script>
-
+      let depth_first_button = document.getElementById("dfs")
       let breadth_first_button = document.getElementById("breadth first");
       let reset_button = document.getElementById("reset_button");
       let diijkstra_button = document.getElementById("diijkstra");
       let Astar_button = document.getElementById("Astar");
       let setDirectional_button = document.getElementById("setDirectional");
       let setBiDirectional_button = document.getElementById("setBiDirectional");
+      depth_first_button.addEventListener('click', depth_wrapper);
       breadth_first_button.addEventListener('click', breadth_wrapper);
       diijkstra_button.addEventListener('click', diijkstra_wrapper);
       Astar_button.addEventListener('click', Astar_wrapper);
@@ -71,33 +73,34 @@
         Object.values(nodeking.edges).map(edge => edge.color = "black");
       }
 
+      async function depth_wrapper(){
+        reset();
+        console.log("here")
+        let path = await nodeking.depthFirstSearch(getStartId(), getEndId(), true)
+        console.log(path);
+      }
+
       async function diijkstra_wrapper(){
         reset();
-        console.log("here we go")
+        
         let delay =  Number(document.getElementById("delay").value);
         let thing = await nodeking.diijkstra(getStartId(), getEndId(), true, delay);
         
-        console.log(thing)
+        
       }
 
       async function Astar_wrapper(){
         reset();
-        console.log("A* or get fucked")
         let delay =  Number(document.getElementById("delay").value);
         let thing = await nodeking.Astar(getStartId(), getEndId(), true);
-        console.log(thing)
       }
 
       async function breadth_wrapper(){
         reset();
         let delay =  Number(document.getElementById("delay").value);
-        console.log(delay);
-        console.log("start");
-        console.log("start "+getStartId());
-        console.log("end "+getEndId());
+
         let thing = await nodeking.breadthFirstSearch(getStartId(), getEndId(), true, delay);
-        console.log("here we go: ")
-        console.log(thing)
+        
         
       }
       function log_all_values(){
