@@ -5,131 +5,352 @@
     <meta name="viewport" content="width=device-width">
     <title>repl.it</title>
     <link href="style.css" rel="stylesheet" type="text/css" />
+    
+    <script>
+      function resizeCanvas(){
+        let new_width = parseFloat(window.getComputedStyle(homeHeader, null).getPropertyValue("width"));
+        console.log(new_width)
+        pad.width = new_width;
+     }
+    </script>
   </head>
   <body>
-   
-    <canvas width="500" height="500" id="canvas">not supported</canvas>
-
-   
     
-    <script src="script.js">
-    </script>
+    <div class="main">
+    <H1>Welcome to the Graph Editor Library (DEMO)</H1>
+
+    
+    <br>
+    <br>
+    <script src="Graphs.js"></script>
+    <div class="demoContainer">
+      <canvas width="600" height="500" id="canvas">not supported</canvas>
+      <div class="textSection">
+        <div class="switch-widget">
+          <table>
+            <tr>
+              <td>fun</td>
+              <td>
+                <label class="switch">
+                    <input id="switch" class="switchbox" type="checkbox">
+                  <span class="slider round"></span>
+                </label>
+              </td>
+              <td>documentation</td>
+            </tr>
+          </table>
+        </div>
+        <div class="fun">
+          <p><i>Right click drag</i> to create nodes</p>
+          <br>
+          <p><i>Left click drag</i> while hovering over a node to make a connection</p>
+          <br>
+          <p>To change edge values or node text simply <i>type</i> while <i>hovering</i> over them</p>
+          <br>
+          <p>To <i>delete</i> a node or edge simply mouse over and press the <i>delete key</i></p>
+        </div>
+        <div class="docs">
+          <br>
+          <p>let graphobj = new <i>Graph</i>("canvasid", <i>fps</i>=60, <i>editable</i>=true, <i>buildable</i>=true)</p>
+          <br>
+          <p>let startNode = graphobj.node( <i>x_positon</i> , <i>y_position</i> , <i>radius</i> , <i>"text"</i>) // </p>
+          <br>
+          <p><i>//making connections</i></p>
+          <p>startNode.<i>connect</i>(<i>node</i>, <i>weight=0</i>)</p>
+          <p>startNode.<i>directional</i>(node, weight=0)</p>
+          <p>startNode.<i>biDirectional</i>(node, weight=0)</p>
+          
+        </div>
+      </div>
+
+    </div>
+
+    <br>
+    <br>
     
 
+    <div class="demoContainer">
+      <canvas width="600" height="500" id="searchGraph">not supported</canvas>
+      <div class="textSection">
+        <div class="switch-widget">
+          <table>
+            <tr>
+              <td>fun</td>
+              <td>
+                <label class="switch">
+                    <input id="switch" class="switchbox" type="checkbox">
+                  <span class="slider round"></span>
+                </label>
+              </td>
+              <td>documentation</td>
+            </tr>
+          </table>
+        </div>
+        <div class="fun">
+              <br>
+              <p>Graph Editor Library also supports built in <i>diijkstra</i>, <i>depth first</i>, <i>breadth first</i>, and <i>Astar</i> search</p>
+              <br>
+              <button id="dfs">Depth first search</button>
+              <button id="breadth first">Breadth First Search</button>
+              <button id="diijkstra">Diijkstra</button>
+              <button id="Astar">A*</button>
+              <br>
+              <br>
+              <p>this widget is set up to find the path from Start to End. Feel free to edit the graph</p>
+              <br>
+              <br>
+              <p>These allow you to draw <i>directional</i> or <i>biDirectional</i> connections</p>
+              <button id="setDirectional">set Directional</button>
+              <button id="setBiDirectional">set BiDirectional</button>
+              <br>
+              <button id="reset_button">reset</button>
+        </div>
+        <div class="docs">
+          <p>graphInstance.<i>diijkstra</i>(startNode.<i>id</i>, endNode.<i>id</i>, <i>draw_path</i>=true)</p>
+          <p>graphInstance.<i>Astar</i>(startNode.id, endNode.id, draw_path=true)</p>
+          <p>graphInstance.<i>depthFirstSearch</i>(startNode.id, endNode.id, draw_true=true)</p>
+          <p>graphInstance.<i>breadthFirstSearch</i>(startNode.id, endNode.id, draw_path=true)</p>
+        </div>
+      </div>
+      <script>
+        let searchGraph = new Graph("searchGraph");
+
+        let beginNode = searchGraph.node(100, 100, 25, "start")
+        let bNode = searchGraph.node(180, 80,25, "b");
+        let cNode = searchGraph.node(175, 300, 30, "c");
+        let dNode = searchGraph.node(220, 380, 25, "d");
+        let eNode = searchGraph.node(240, 260, 25, "e");
+        let fNode = searchGraph.node(400, 250, 25, "f");
+        let gNode = searchGraph.node(300, 100, 25, "g");
+        let rNode = searchGraph.node(300, 270, 25, "r");
+        let endNode = searchGraph.node(450, 450, 25, "end");
+        gNode.connect(rNode);
+        rNode.connect(endNode);
+        endNode.connect(gNode, 25);
+        endNode.connect(fNode, 17);
+        gNode.directional(fNode, 4);
+        eNode.connect(gNode);
+        cNode.connect(eNode, 6);
+        bNode.connect(eNode, 3);
+        bNode.connect(cNode);
+        dNode.connect(fNode, 16);
+        beginNode.directional(cNode, 6);
+        beginNode.connect(bNode, 2);
+        eNode.connect(dNode, 3);
+        cNode.connect(dNode, 2);
+
+
+
+
+
+        let depth_first_button = document.getElementById("dfs")
+        let breadth_first_button = document.getElementById("breadth first");
+        let reset_button = document.getElementById("reset_button");
+        let diijkstra_button = document.getElementById("diijkstra");
+        let Astar_button = document.getElementById("Astar");
+        let setDirectional_button = document.getElementById("setDirectional");
+        let setBiDirectional_button = document.getElementById("setBiDirectional");
+        depth_first_button.addEventListener('click', depth_wrapper);
+        breadth_first_button.addEventListener('click', breadth_wrapper);
+        diijkstra_button.addEventListener('click', diijkstra_wrapper);
+        Astar_button.addEventListener('click', Astar_wrapper);
+        reset_button.addEventListener('click', reset);
+        setDirectional.addEventListener('click', ()=>searchGraph.setDirectional());
+        setBiDirectional.addEventListener('click', ()=>searchGraph.setBiDirectional());
+
+        function getStartId(){
+          let start = searchGraph.getChildrenByText("start");
+          
+          return start[0].id;
+        }
+
+        function getEndId(){
+          let end = searchGraph.getChildrenByText("end");
+          
+          return end[0].id;
+        }
+
+        function reset(){
+          Object.values(searchGraph.edges).map(edge => edge.color = "black");
+        }
+
+        async function depth_wrapper(){
+          reset();
+          console.log("here")
+          let path = await searchGraph.depthFirstSearch(getStartId(), getEndId(), true)
+          console.log(path);
+        }
+
+        async function diijkstra_wrapper(){
+          reset();
+          let thing = await searchGraph.diijkstra(getStartId(), getEndId(), true);
+          
+          
+        }
+
+        async function Astar_wrapper(){
+          reset();
+          let thing = await searchGraph.Astar(getStartId(), getEndId(), true);
+        }
+
+        async function breadth_wrapper(){
+          reset();
+          
+
+          let thing = await searchGraph.breadthFirstSearch(getStartId(), getEndId(), true);
+          
+          
+        }
+        function log_all_values(){
+          searchGraph.objs.map((node)=>console.log(node.value));
+        }
+      </script>
+
+    </div>
+
     <br>
-    <label>delay (ms)</label>
-    <input type="number" value="0" id="delay">
     <br>
-    <button id="reset_button">reset</button>
-    <button id="dfs">Depth first search</button>
-    <button id="breadth first">Breadth First Search</button>
-    <button id="diijkstra">Diijkstra</button>
-    <button id="Astar">A*</button>
-    <button id="setDirectional">set Directional</button>
-    <button id="setBiDirectional">set BiDirectional</button>
-    <br>
-    <br>
-    <canvas width="600" height="300" id="canvas2">not supported</canvas>
-    <br>
-    <br>
-    <canvas width="600" height="600" id="canvas3">not supported</canvas>
-    <br>
-    <br>
-    <canvas width="500", height="500" id="canvas4">not supported</canvas>
-    <script>
-      let depth_first_button = document.getElementById("dfs")
-      let breadth_first_button = document.getElementById("breadth first");
-      let reset_button = document.getElementById("reset_button");
-      let diijkstra_button = document.getElementById("diijkstra");
-      let Astar_button = document.getElementById("Astar");
-      let setDirectional_button = document.getElementById("setDirectional");
-      let setBiDirectional_button = document.getElementById("setBiDirectional");
-      depth_first_button.addEventListener('click', depth_wrapper);
-      breadth_first_button.addEventListener('click', breadth_wrapper);
-      diijkstra_button.addEventListener('click', diijkstra_wrapper);
-      Astar_button.addEventListener('click', Astar_wrapper);
-      reset_button.addEventListener('click', reset);
-      setDirectional.addEventListener('click', ()=>nodeking.setDirectional());
-      setBiDirectional.addEventListener('click', ()=>nodeking.setBiDirectional());
-
-
-      const sleep = (milliseconds) => {
-        return new Promise(resolve => setTimeout(resolve, milliseconds))
-      }
-
-      function getStartId(){
-        let start = nodeking.getChildrenByText("start");
-        
-        return start[0].id;
-      }
-
-      function getEndId(){
-        let end = nodeking.getChildrenByText("end");
-        
-        return end[0].id;
-      }
-
-      function reset(){
-        Object.values(nodeking.edges).map(edge => edge.color = "black");
-      }
-
-      async function depth_wrapper(){
-        reset();
-        console.log("here")
-        let path = await nodeking.depthFirstSearch(getStartId(), getEndId(), true)
-        console.log(path);
-      }
-
-      async function diijkstra_wrapper(){
-        reset();
-        
-        let delay =  Number(document.getElementById("delay").value);
-        let thing = await nodeking.diijkstra(getStartId(), getEndId(), true, delay);
-        
-        
-      }
-
-      async function Astar_wrapper(){
-        reset();
-        let delay =  Number(document.getElementById("delay").value);
-        let thing = await nodeking.Astar(getStartId(), getEndId(), true);
-      }
-
-      async function breadth_wrapper(){
-        reset();
-        let delay =  Number(document.getElementById("delay").value);
-
-        let thing = await nodeking.breadthFirstSearch(getStartId(), getEndId(), true, delay);
-        
-        
-      }
-      function log_all_values(){
-        nodeking.objs.map((node)=>console.log(node.value));
-      }
-    </script>
-    <script>
-      let canvas = document.getElementById("canvas");
-      let nodeking = new Graph("canvas");
-      let start = nodeking.node(100, 100, 40, "start");
-      let medium = nodeking.node(300, 200, 35, "thing");
-      let end = nodeking.node(100, 400, 40, "end");
-
-      start.directional(medium, 13);
-      medium.biDirectional(end, 5);
-      end.directional(start, 1);
-
+    
+    <div class="demoContainer">
+      <canvas width="600" height="300" id="canvas2">not supported</canvas>
+      <div class="textSection" id="baconSection">
+        <div class="switch-widget">
+          <table>
+            <tr>
+              <td>fun</td>
+              <td>
+                <label class="switch">
+                    <input id="switch" class="switchbox" type="checkbox">
+                  <span class="slider round"></span>
+                </label>
+              </td>
+              <td>documentation</td>
+            </tr>
+          </table>
+        </div>
+        <div class="fun">
+          <p>This Library also supports Images</p>
+          <p>Go ahead and drag a new node onto the canvas</p>
+        </div>
+        <div class="docs">
+          <p>node.<i>setImage</i>("https://someimage.jpg")</p>
+        </div>
+      </div>
+      <script>
       let nodeking2 = new Graph("canvas2");
-
-
-      nodeking2.setNodeCreatedCallback((node)=>{
+      nodeking2.setNodeSetupCallback((node)=>{
         let images = ["https://media1.popsugar-assets.com/files/thumbor/LfOJxhNfU8EftMFF_YPT5Fm5PwQ/263x100:2721x2558/fit-in/2048xorig/filters:format_auto-!!-:strip_icc-!!-/2020/04/06/953/n/1922398/d81efb315e8ba4da48b3b7.11171110_/i/Kevin-Bacon.jpg",
         "https://pbs.twimg.com/profile_images/1240039886343688192/ddEgtzqr_400x400.jpg",
         "https://m.media-amazon.com/images/M/MV5BOTQxMTEyMjI0NV5BMl5BanBnXkFtZTgwODE4ODAzMjE@._V1_.jpg",
         "https://media.npr.org/assets/img/2011/11/22/kevinbacon_custom-008ac9d4aa108bcc152d5813a006362d286d6984-s800-c85.jpg"
         ]
         node.setImage(images[Math.floor(Math.random()*images.length)]);
-      
       })
+      nodeking2.node(137, 137, 35);
+      </script>
+    </div>
+    <br>
+    <br>
+    <div class="demoContainer">
+      <canvas width="600" height="600" id="canvas3">not supported</canvas>
+      <div class="textSection" id="animatedTextSection">
+        <div class="switch-widget">
+          <table>
+            <tr>
+              <td>fun</td>
+              <td>
+                <label class="switch">
+                    <input id="switch" class="switchbox" type="checkbox">
+                  <span class="slider round"></span>
+                </label>
+              </td>
+              <td>documentation</td>
+            </tr>
+          </table>
+        </div>
+        <div class="fun">
+          <p>With the help of <i>callback hooks</i> you can create <i>beautiful</i> animated <i>creations</i></p>
+          <p>drag new nodes in to make the <i>graph larger</i></p>
+          <br>
+          <br>
+          <p>this partucular graph uses <i>diijkstra's shortest path</i> to constantly highlight the shortest path between A and B</p>
+          <p>Meanwhile the <i>edge weight</i> is set to the <i>euclidean distance</i> between nodes</p>
+        </div>
+        <div class="docs">
+          <p>graph editor Library allows for callback hooks</p>
+          <br>
+          <p>let g = new Graph("somecanvasid")</p>
+          <p>g.<i>setTickCallback</i>(function)</p>
+          <br>
+          <p style="margin-left:15px;">the tickCallback is called every frame</p>
+          <p style="margin-left:15px;">and the callback is passed the entire graphInstance as an argument</p>
+          <p>g.<i>setNodeSetupCallback</i>(function)</p>
+          <br>
+          <p style="margin-left:15px;">the nodeSetupCallback is called everytime a new node is created either programatically or created by user</p>
+          <p style="margin-left:15px;">nodeSetupCallback is passed just the created node as an argument</p>
+          <p>g.<i>setNodeCreatedCallback</i>(function)</p>
+          <br>
+          <p style="margin-left:15px;">the nodeCreatedCallback is only called when ui nodes are drawn in</p>
+          <p style="margin-left:15px;">if nodeCreatedCallback is set and nodeSetupCallback is set both will be called</p>
+          <p style="margin-left:15px;">nodeCreatedCallback is passed just the created node as an argument</p>
+          <p>g.<i>setConnectionSetupCallback</i>(function)</p>
+          <br>
+          <p style="margin-left:15px;">the ConnectionSetupCallback is called whenever a new connection is made programatically or by user</p>
+          <p style="margin-left:15px;">the ConnectionSetupCallback is passed just the new edge created as an argument</p>
+          <p>g.<i>setConnectionCreatedCallback</i>(function)</p>
+          <p style="margin-left:15px;">the connectionCreatedCallback is called only when a new connection is made through the UI</p>
+          <p style="margin-left:15px;">the connectionCreatedCallback is passed just the new edge as an argument</p>
+        </div>
+      </div>
+    </div>
+    <br>
+    <script>
+      let switchers = Array.from(document.getElementsByClassName("switchbox"));
+
+      function flipper(event){
+        let flip = "fun";
+        let flop = "docs";
+        if(this.checked){
+
+        }
+        else{
+          flip = "docs";
+          flop = "fun";
+        }
+        let funs = Array.from(document.getElementsByClassName(flip));
+        funs.map((item)=>item.style.display = "none");
+        let docs = Array.from(document.getElementsByClassName(flop));
+        docs.map((item)=>item.style.display = "block");
+        if(flip === "fun"){
+          switchers.map((item)=>{item.checked = true})
+        }
+        else{
+          switchers.map((item)=>{item.checked = false})
+        }
+
+      }
+
+      
+      
+      switchers.map((switchbox) => switchbox.addEventListener("change", flipper));
+    </script>
+
+
+
+    <script>
+      let canvas = document.getElementById("canvas");
+      let graph = new Graph("canvas");
+      
+      let start = graph.node(100, 100, 40, "start");
+      let medium = graph.node(300, 200, 35, "thing");
+      let end = graph.node(100, 400, 40, "end");
+
+      start.directional(medium, 13);
+      medium.biDirectional(end, 5);
+      end.directional(start, 1);
+      
+      //Graph.load(graph, canvas);
+
       
       let nodeking3 = new Graph("canvas3");
       
@@ -145,16 +366,24 @@
           node.x += x;
           node.y += y;
           if(node.x-node.r < 0){
-            x *= -1;
+            if(x < 0){
+              x *= -1;
+            }
           }
           if(node.x+node.r > graph.canvas.width){
-            x *= -1;
+            if(x > 0){
+              x *= -1;
+            }
           }
           if(node.y+node.r > graph.canvas.width){
-            y *= -1
+            if(y > 0){
+              y *= -1
+            }
           }
           if(node.y-node.r < 0){
-            y *= -1
+            if(y < 0){
+              y *= -1
+            }
           }
           
           for(let key of Object.keys(node.edges)){
@@ -190,15 +419,9 @@
       nodeking3.vars.F.connect(nodeking3.vars.B)
       nodeking3.vars.B.connect(nodeking3.vars.D)
 
-      let bigdata = nodeking3.save();
-      
-
-      let nodeking4 = Graph.load(bigdata, "canvas4")
-      console.log("here")
-      console.log(nodeking4)
-
       
       
     </script>
+    </div>
   </body>
 </html>

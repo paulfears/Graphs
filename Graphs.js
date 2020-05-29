@@ -494,6 +494,8 @@ class Graph{
     return evaulateNode(discovered_stack.shift());
   }
 
+  
+
   async breadthFirstSearch(startid, endid, draw_path, delay=0){
     console.log("inside function")
     let start = this.getNodeById(startid);
@@ -1223,10 +1225,7 @@ Graph._node = function(contextid, x=false, y=false, r=false, text=""){
 
 }
 
-Graph.functions = {
-  "end":()=>{}
-
-                  }
+Graph.functions = {}
 
 
 
