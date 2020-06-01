@@ -1,5 +1,6 @@
-# Graphs - https://paulfears.github.io/Graphs/ (live version)
+# Graphs.js
 ## A library for drawing interactive graph theory graphs on an html5 canvas
+## https://paulfears.github.io/Graphs/ (live version)
 
 ## Quick Start
 
