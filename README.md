@@ -1,5 +1,5 @@
 # Graphs.js
-## A library for drawing interactive graph theory graphs on an html5 canvas
+A library for drawing interactive graph theory graphs on an html5 canvas
 ## https://paulfears.github.io/Graphs/ (live version)
 
 ## Quick Start
@@ -41,7 +41,7 @@ creating a weighted biDirectional connection
   node1.connect(node2, 25) //created a connection with a weight of 25
 ```
 creating a directional connection
-```
+```javascript
   let node1 = graph.node(100, 100, 25, "node1");
   let node2 = graph.node(200, 200, 25, "node2");
   node1.directional(node2, 15) //created a directional connection with a weight of 15
