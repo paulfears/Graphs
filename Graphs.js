@@ -1052,15 +1052,40 @@ Graph._edge = function(contextid, startNodeid, endNodeid, color="#000", text="",
       return distToSegment(p, v, w);
     }
 
-    this.inside = function(x,y, yoffset, xoffset, sensitivity=3){
+  this.isOnSelfLoop = function (x, y) {
+    function isBetween(x, a, b) {
+      return a <= x && x <= b || b <= x && x <= a;
+    }
+
+    let x0 = this.calculateSelfLoopPivotX();
+    let y0 = this.calculateSelfLoopPivotY();
+    let x1 = this.calculateSelfLoopPivotX() + this.calculateSelfLoopControlTriangleWidth();
+    let y1 = this.calculateSelfLoopPivotY();
+    let x2 = this.calculateSelfLoopPivotX();
+    let y2 = this.calculateSelfLoopPivotY() + this.calculateSelfLoopControlTriangleHeight();
+    let x3 = this.calculateSelfLoopPivotX();
+    let y3 = this.calculateSelfLoopPivotY();
+    let midPointX = Graph.calculateMidPointOfBezierCurve(x0, x1, x2, x3);
+    let midPointY = Graph.calculateMidPointOfBezierCurve(y0, y1, y2, y3);
+
+    return isBetween(x, x0, midPointX) && isBetween(y, y0, midPointY);
+  };
+
+  this.inside = function(x,y, yoffset, xoffset, sensitivity=3){
       if(!yoffset){
         yoffset = 0;
       }
       if(!xoffset){
         xoffset = 0;
       }
-      if(this._pointDistance(x+xoffset,y+yoffset) < sensitivity+1){
-        return true;
+      if(this.startNodeid == this.endNodeid) {
+        if(this.isOnSelfLoop(x + xoffset, y + yoffset)) {
+          return true;
+        }
+      } else {
+        if (this._pointDistance(x + xoffset, y + yoffset) < sensitivity + 1) {
+          return true;
+        }
       }
       return false;
     }
