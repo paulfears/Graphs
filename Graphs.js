@@ -245,12 +245,43 @@ class Graph{
   }
 
 
-  drawLoop(xstart, ystart, radius, text="", directional=false){
+  drawLoop(xstart, ystart, controlTriangleWidth, controlTriangleHeight, text="", directional=false){
+    let x0 = xstart;
+    let y0 = ystart;
+    let x1 = xstart + controlTriangleWidth;
+    let y1 = ystart;
+    let x2 = xstart;
+    let y2 = ystart + controlTriangleHeight;
+    let x3 = xstart;
+    let y3 = ystart;
     this.ctx.beginPath();
-    this.ctx.moveTo(xstart, ystart);
-    this.ctx.bezierCurveTo(xstart + radius, ystart, xstart,ystart - radius, xstart, ystart);
+    this.addBezierCurveToPath(x0, y0, x1, y1, x2, y2, x3, y3);
     this.ctx.closePath();
     this.ctx.stroke();
+
+    if(text !== null && text !== "") {
+      let midPointX = Graph.calculateMidPointOfBezierCurve(x0, x1, x2, x3);
+      let midPointY = Graph.calculateMidPointOfBezierCurve(y0, y1, y2, y3);
+
+      this.addTextOverClearBox(midPointX, midPointY, text);
+    }
+  }
+
+  addTextOverClearBox(centerX, centerY, text) {
+    let textLength = this.ctx.measureText(text).width;
+    let textHeight = this.ctx.measureText("M").width;
+
+    this.ctx.clearRect(centerX - (textLength / 2) - 4, centerY - (textHeight / 2) - 8, (textLength) + 4, (textHeight) + 8);
+    this.ctx.fillText(text, centerX - 2, centerY + 4);
+  }
+
+  static calculateMidPointOfBezierCurve(x0, x1, x2, x3) {
+    return x0 * 1 / 8 + x1 * 3 / 8 + x2 * 3 / 8 + x3 * 1 / 8;
+  }
+
+  addBezierCurveToPath(x0, y0, x1, y1, x2, y2, x3, y3) {
+    this.ctx.moveTo(x0, y0);
+    this.ctx.bezierCurveTo(x1, y1, x2, y2, x3, y3);
   }
 
   drawArrow(x1,y1,x2,y2, text="", directional=false){
@@ -286,17 +317,8 @@ class Graph{
         this.ctx.lineTo(x2-headlen*Math.cos(angle+Math.PI/6),y2-headlen*Math.sin(angle+Math.PI/6));
         this.ctx.closePath();
         this.ctx.stroke();
-        
 
-        
-        let textLength = this.ctx.measureText(text).width;
-        let textHeight = this.ctx.measureText("M").width;
-
-
-        
-        this.ctx.clearRect(midPointX-(textLength/2)-4, midPointY-(textHeight/2)-8, (textLength)+4, (textHeight)+8);
-        this.ctx.fillText(text, midPointX-2, midPointY+4);
-
+        this.addTextOverClearBox(midPointX, midPointY, text);
       }
   }
   
@@ -963,8 +985,32 @@ Graph._edge = function(contextid, startNodeid, endNodeid, color="#000", text="",
       }
 
     }
-    
-    this.draw = function(){
+
+  this.calculateSelfLoopPivotX = function (){
+    let context = Graph.getContext(this.contextid);
+    let node = context.getNodeById(this.startNodeid);
+    return node.x + node.r / Math.sqrt(2);
+  };
+
+  this.calculateSelfLoopPivotY = function (){
+    let context = Graph.getContext(this.contextid);
+    let node = context.getNodeById(this.startNodeid);
+    return node.y - node.r / Math.sqrt(2);
+  };
+
+  this.calculateSelfLoopControlTriangleWidth = function (){
+    let context = Graph.getContext(this.contextid);
+    let node = context.getNodeById(this.startNodeid);
+    return node.r * 4;
+  };
+
+  this.calculateSelfLoopControlTriangleHeight = function (){
+    let context = Graph.getContext(this.contextid);
+    let node = context.getNodeById(this.startNodeid);
+    return -node.r * 4;
+  };
+
+  this.draw = function(){
       this._updateValues();
       let context = Graph.getContext(this.contextid);
       let temp_color = context.ctx.strokeStyle;
@@ -977,9 +1023,11 @@ Graph._edge = function(contextid, startNodeid, endNodeid, color="#000", text="",
       }
 
     if(this.startNodeid == this.endNodeid) {
-      let node = context.getNodeById(this.startNodeid);
-      let pivotOffset = node.r / Math.sqrt(2);
-      context.drawLoop(node.x + pivotOffset, node.y - pivotOffset, node.r * 4, this.text, this.directional);
+      let x = this.calculateSelfLoopPivotX();
+      let y = this.calculateSelfLoopPivotY();
+      let controlTriangleWidth = this.calculateSelfLoopControlTriangleWidth();
+      let controlTriangleHeight = this.calculateSelfLoopControlTriangleHeight();
+      context.drawLoop(x, y, controlTriangleWidth, controlTriangleHeight, this.text, this.directional);
     } else {
       context.drawArrow(this.xstart, this.ystart, this.xend, this.yend, this.text, this.directional);
     }
