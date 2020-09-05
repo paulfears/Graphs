@@ -244,6 +244,15 @@ class Graph{
     return false;
   }
 
+
+  drawLoop(xstart, ystart, radius, text="", directional=false){
+    this.ctx.beginPath();
+    this.ctx.moveTo(xstart, ystart);
+    this.ctx.bezierCurveTo(xstart + radius, ystart, xstart,ystart - radius, xstart, ystart);
+    this.ctx.closePath();
+    this.ctx.stroke();
+  }
+
   drawArrow(x1,y1,x2,y2, text="", directional=false){
       
       let headlen = 0; 
@@ -966,7 +975,14 @@ Graph._edge = function(contextid, startNodeid, endNodeid, color="#000", text="",
       else{
         context.ctx.strokeStyle = this.color;
       }
+
+    if(this.startNodeid == this.endNodeid) {
+      let node = context.getNodeById(this.startNodeid);
+      let pivotOffset = node.r / Math.sqrt(2);
+      context.drawLoop(node.x + pivotOffset, node.y - pivotOffset, node.r * 4, this.text, this.directional);
+    } else {
       context.drawArrow(this.xstart, this.ystart, this.xend, this.yend, this.text, this.directional);
+    }
       context.ctx.strokeStyle = temp_color;
 
     }
@@ -1151,9 +1167,6 @@ Graph._node = function(contextid, x=false, y=false, r=false, text=""){
     
     this.connect = function(n, text = "", directional=false){
       let context = Graph.getContext(this.contextid);
-      if(n==this){
-        return false;
-      }
       if(n.type !== "node"){
         return false;
       }
