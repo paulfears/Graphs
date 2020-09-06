@@ -977,19 +977,19 @@ Graph._edge = function(contextid, startNodeid, endNodeid, color="#000", text="",
       }
 
     }
-    
+
   this.getSelfLoopBezierControlPointsX = function() {
     let context = Graph.getContext(this.contextid);
     let node = context.getNodeById(this.startNodeid);
     let x = node.x + node.r / Math.sqrt(2);
-    return [x, x + node.r * 4, x, x];
+    return [x, x + node.r * 2, x, x];
   }
 
   this.getSelfLoopBezierControlPointsY = function() {
     let context = Graph.getContext(this.contextid);
     let node = context.getNodeById(this.startNodeid);
     let y = node.y - node.r / Math.sqrt(2);
-    return [y, y, y - node.r * 4, y];
+    return [y, y, y - node.r * 2, y];
   }
 
   this.draw = function(){
