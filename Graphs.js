@@ -394,7 +394,6 @@ class Graph{
           this.start["action"] = "connect";
           this.start["start_node"] = this.active;
           this.connecting = true;
-          this.start["start_node"].connect(this.active);
         }else{
           this.connecting = false;
         }
