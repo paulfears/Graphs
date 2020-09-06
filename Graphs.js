@@ -245,23 +245,15 @@ class Graph{
   }
 
 
-  drawLoop(xstart, ystart, controlTriangleWidth, controlTriangleHeight, text="", directional=false){
-    let x0 = xstart;
-    let y0 = ystart;
-    let x1 = xstart + controlTriangleWidth;
-    let y1 = ystart;
-    let x2 = xstart;
-    let y2 = ystart + controlTriangleHeight;
-    let x3 = xstart;
-    let y3 = ystart;
+  drawLoop(bezierControlPointsX, bezierControlPointsY, text="", directional=false){
     this.ctx.beginPath();
-    this.addBezierCurveToPath(x0, y0, x1, y1, x2, y2, x3, y3);
+    this.addBezierCurveToPath(bezierControlPointsX, bezierControlPointsY);
     this.ctx.closePath();
     this.ctx.stroke();
 
     if(text !== null && text !== "") {
-      let midPointX = Graph.calculateMidPointOfBezierCurve(x0, x1, x2, x3);
-      let midPointY = Graph.calculateMidPointOfBezierCurve(y0, y1, y2, y3);
+      let midPointX = Graph.calculateMidPointOfBezierCurve(bezierControlPointsX);
+      let midPointY = Graph.calculateMidPointOfBezierCurve(bezierControlPointsY);
 
       this.addTextOverClearBox(midPointX, midPointY, text);
     }
@@ -275,13 +267,13 @@ class Graph{
     this.ctx.fillText(text, centerX - 2, centerY + 4);
   }
 
-  static calculateMidPointOfBezierCurve(x0, x1, x2, x3) {
-    return x0 * 1 / 8 + x1 * 3 / 8 + x2 * 3 / 8 + x3 * 1 / 8;
+  static calculateMidPointOfBezierCurve(controlPoints) {
+    return controlPoints[0] * 1 / 8 + controlPoints[1] * 3 / 8 + controlPoints[2] * 3 / 8 + controlPoints[3] * 1 / 8;
   }
 
-  addBezierCurveToPath(x0, y0, x1, y1, x2, y2, x3, y3) {
-    this.ctx.moveTo(x0, y0);
-    this.ctx.bezierCurveTo(x1, y1, x2, y2, x3, y3);
+  addBezierCurveToPath(xs, ys) {
+    this.ctx.moveTo(xs[0], ys[0]);
+    this.ctx.bezierCurveTo(xs[1], ys[1], xs[2], ys[2], xs[3], ys[3]);
   }
 
   drawArrow(x1,y1,x2,y2, text="", directional=false){
@@ -985,30 +977,20 @@ Graph._edge = function(contextid, startNodeid, endNodeid, color="#000", text="",
       }
 
     }
-
-  this.calculateSelfLoopPivotX = function (){
+    
+  this.getSelfLoopBezierControlPointsX = function() {
     let context = Graph.getContext(this.contextid);
     let node = context.getNodeById(this.startNodeid);
-    return node.x + node.r / Math.sqrt(2);
-  };
+    let x = node.x + node.r / Math.sqrt(2);
+    return [x, x + node.r * 4, x, x];
+  }
 
-  this.calculateSelfLoopPivotY = function (){
+  this.getSelfLoopBezierControlPointsY = function() {
     let context = Graph.getContext(this.contextid);
     let node = context.getNodeById(this.startNodeid);
-    return node.y - node.r / Math.sqrt(2);
-  };
-
-  this.calculateSelfLoopControlTriangleWidth = function (){
-    let context = Graph.getContext(this.contextid);
-    let node = context.getNodeById(this.startNodeid);
-    return node.r * 4;
-  };
-
-  this.calculateSelfLoopControlTriangleHeight = function (){
-    let context = Graph.getContext(this.contextid);
-    let node = context.getNodeById(this.startNodeid);
-    return -node.r * 4;
-  };
+    let y = node.y - node.r / Math.sqrt(2);
+    return [y, y, y - node.r * 4, y];
+  }
 
   this.draw = function(){
       this._updateValues();
@@ -1023,11 +1005,9 @@ Graph._edge = function(contextid, startNodeid, endNodeid, color="#000", text="",
       }
 
     if(this.startNodeid == this.endNodeid) {
-      let x = this.calculateSelfLoopPivotX();
-      let y = this.calculateSelfLoopPivotY();
-      let controlTriangleWidth = this.calculateSelfLoopControlTriangleWidth();
-      let controlTriangleHeight = this.calculateSelfLoopControlTriangleHeight();
-      context.drawLoop(x, y, controlTriangleWidth, controlTriangleHeight, this.text, this.directional);
+      let xs = this.getSelfLoopBezierControlPointsX();
+      let ys = this.getSelfLoopBezierControlPointsY();
+      context.drawLoop(xs, ys, this.text, this.directional);
     } else {
       context.drawArrow(this.xstart, this.ystart, this.xend, this.yend, this.text, this.directional);
     }
@@ -1057,18 +1037,13 @@ Graph._edge = function(contextid, startNodeid, endNodeid, color="#000", text="",
       return a <= x && x <= b || b <= x && x <= a;
     }
 
-    let x0 = this.calculateSelfLoopPivotX();
-    let y0 = this.calculateSelfLoopPivotY();
-    let x1 = this.calculateSelfLoopPivotX() + this.calculateSelfLoopControlTriangleWidth();
-    let y1 = this.calculateSelfLoopPivotY();
-    let x2 = this.calculateSelfLoopPivotX();
-    let y2 = this.calculateSelfLoopPivotY() + this.calculateSelfLoopControlTriangleHeight();
-    let x3 = this.calculateSelfLoopPivotX();
-    let y3 = this.calculateSelfLoopPivotY();
-    let midPointX = Graph.calculateMidPointOfBezierCurve(x0, x1, x2, x3);
-    let midPointY = Graph.calculateMidPointOfBezierCurve(y0, y1, y2, y3);
+    let xs = this.getSelfLoopBezierControlPointsX();
+    let ys = this.getSelfLoopBezierControlPointsY();
 
-    return isBetween(x, x0, midPointX) && isBetween(y, y0, midPointY);
+    let midPointX = Graph.calculateMidPointOfBezierCurve(xs);
+    let midPointY = Graph.calculateMidPointOfBezierCurve(ys);
+
+    return isBetween(x, xs[0], midPointX) && isBetween(y, ys[0], midPointY);
   };
 
   this.inside = function(x,y, yoffset, xoffset, sensitivity=3){
