@@ -942,10 +942,17 @@ Graph._edge = function(contextid, startNodeid, endNodeid, color="#000", text="",
       if(this.slope === -Infinity){
         yflip*=-1;
       }
-      this.xstart = start.x + xflip*(Math.cos(Math.atan(this.slope))*start.r);
-      this.ystart = start.y + yflip*(Math.sin(Math.atan(this.slope))*start.r);
-      this.xend = end.x - xflip*(Math.cos(Math.atan(this.slope))*end.r);     
-      this.yend = end.y - yflip*(Math.sin(Math.atan(this.slope))*end.r);
+
+      let angleOffset = 0.0;
+      let oppositeEdge = context.getEdge(this.endNodeid, this.startNodeid);
+      if(this.isDirectional() && oppositeEdge) {
+        angleOffset =  2*Math.PI/16;
+      }
+
+      this.xstart = start.x + xflip*(Math.cos(angleOffset + Math.atan(this.slope))*start.r);
+      this.ystart = start.y + yflip*(Math.sin(angleOffset + Math.atan(this.slope))*start.r);
+      this.xend = end.x - xflip*(Math.cos(-angleOffset + Math.atan(this.slope))*end.r);
+      this.yend = end.y - yflip*(Math.sin(-angleOffset + Math.atan(this.slope))*end.r);
       if(isNaN(parseFloat(this.text))){
         this.setWeight(0);
       }
