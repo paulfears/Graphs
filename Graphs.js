@@ -244,6 +244,38 @@ class Graph{
     return false;
   }
 
+
+  drawLoop(bezierControlPointsX, bezierControlPointsY, text="", directional=false){
+    this.ctx.beginPath();
+    this.addBezierCurveToPath(bezierControlPointsX, bezierControlPointsY);
+    this.ctx.closePath();
+    this.ctx.stroke();
+
+    if(text !== null && text !== "") {
+      let midPointX = Graph.calculateMidPointOfBezierCurve(bezierControlPointsX);
+      let midPointY = Graph.calculateMidPointOfBezierCurve(bezierControlPointsY);
+
+      this.addTextOverClearBox(midPointX, midPointY, text);
+    }
+  }
+
+  addTextOverClearBox(centerX, centerY, text) {
+    let textLength = this.ctx.measureText(text).width;
+    let textHeight = this.ctx.measureText("M").width;
+
+    this.ctx.clearRect(centerX - (textLength / 2) - 4, centerY - (textHeight / 2) - 8, (textLength) + 4, (textHeight) + 8);
+    this.ctx.fillText(text, centerX - 2, centerY + 4);
+  }
+
+  static calculateMidPointOfBezierCurve(controlPoints) {
+    return controlPoints[0] * 1 / 8 + controlPoints[1] * 3 / 8 + controlPoints[2] * 3 / 8 + controlPoints[3] * 1 / 8;
+  }
+
+  addBezierCurveToPath(xs, ys) {
+    this.ctx.moveTo(xs[0], ys[0]);
+    this.ctx.bezierCurveTo(xs[1], ys[1], xs[2], ys[2], xs[3], ys[3]);
+  }
+
   drawArrow(x1,y1,x2,y2, text="", directional=false){
       
       let headlen = 0; 
@@ -277,17 +309,8 @@ class Graph{
         this.ctx.lineTo(x2-headlen*Math.cos(angle+Math.PI/6),y2-headlen*Math.sin(angle+Math.PI/6));
         this.ctx.closePath();
         this.ctx.stroke();
-        
 
-        
-        let textLength = this.ctx.measureText(text).width;
-        let textHeight = this.ctx.measureText("M").width;
-
-
-        
-        this.ctx.clearRect(midPointX-(textLength/2)-4, midPointY-(textHeight/2)-8, (textLength)+4, (textHeight)+8);
-        this.ctx.fillText(text, midPointX-2, midPointY+4);
-
+        this.addTextOverClearBox(midPointX, midPointY, text);
       }
   }
   
@@ -371,7 +394,6 @@ class Graph{
           this.start["action"] = "connect";
           this.start["start_node"] = this.active;
           this.connecting = true;
-          this.start["start_node"].connect(this.active);
         }else{
           this.connecting = false;
         }
@@ -961,8 +983,22 @@ Graph._edge = function(contextid, startNodeid, endNodeid, color="#000", text="",
       }
 
     }
-    
-    this.draw = function(){
+
+  this.getSelfLoopBezierControlPointsX = function() {
+    let context = Graph.getContext(this.contextid);
+    let node = context.getNodeById(this.startNodeid);
+    let x = node.x + node.r / Math.sqrt(2);
+    return [x, x + node.r * 2, x, x];
+  }
+
+  this.getSelfLoopBezierControlPointsY = function() {
+    let context = Graph.getContext(this.contextid);
+    let node = context.getNodeById(this.startNodeid);
+    let y = node.y - node.r / Math.sqrt(2);
+    return [y, y, y - node.r * 2, y];
+  }
+
+  this.draw = function(){
       this._updateValues();
       let context = Graph.getContext(this.contextid);
       let temp_color = context.ctx.strokeStyle;
@@ -973,7 +1009,14 @@ Graph._edge = function(contextid, startNodeid, endNodeid, color="#000", text="",
       else{
         context.ctx.strokeStyle = this.color;
       }
+
+    if(this.startNodeid == this.endNodeid) {
+      let xs = this.getSelfLoopBezierControlPointsX();
+      let ys = this.getSelfLoopBezierControlPointsY();
+      context.drawLoop(xs, ys, this.text, this.directional);
+    } else {
       context.drawArrow(this.xstart, this.ystart, this.xend, this.yend, this.text, this.directional);
+    }
       context.ctx.strokeStyle = temp_color;
 
     }
@@ -995,15 +1038,35 @@ Graph._edge = function(contextid, startNodeid, endNodeid, color="#000", text="",
       return distToSegment(p, v, w);
     }
 
-    this.inside = function(x,y, yoffset, xoffset, sensitivity=3){
+  this.isOnSelfLoop = function (x, y) {
+    function isBetween(x, a, b) {
+      return a <= x && x <= b || b <= x && x <= a;
+    }
+
+    let xs = this.getSelfLoopBezierControlPointsX();
+    let ys = this.getSelfLoopBezierControlPointsY();
+
+    let midPointX = Graph.calculateMidPointOfBezierCurve(xs);
+    let midPointY = Graph.calculateMidPointOfBezierCurve(ys);
+
+    return isBetween(x, xs[0], midPointX) && isBetween(y, ys[0], midPointY);
+  };
+
+  this.inside = function(x,y, yoffset, xoffset, sensitivity=3){
       if(!yoffset){
         yoffset = 0;
       }
       if(!xoffset){
         xoffset = 0;
       }
-      if(this._pointDistance(x+xoffset,y+yoffset) < sensitivity+1){
-        return true;
+      if(this.startNodeid == this.endNodeid) {
+        if(this.isOnSelfLoop(x + xoffset, y + yoffset)) {
+          return true;
+        }
+      } else {
+        if (this._pointDistance(x + xoffset, y + yoffset) < sensitivity + 1) {
+          return true;
+        }
       }
       return false;
     }
@@ -1158,9 +1221,6 @@ Graph._node = function(contextid, x=false, y=false, r=false, text=""){
     
     this.connect = function(n, text = "", directional=false){
       let context = Graph.getContext(this.contextid);
-      if(n==this){
-        return false;
-      }
       if(n.type !== "node"){
         return false;
       }
