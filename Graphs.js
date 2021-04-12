@@ -843,6 +843,7 @@ Graph._edge = function(contextid, startNodeid, endNodeid, color="#000", text="",
     this.altColor = "#aaa"
     this.selected = false
     this.text = text
+    this.isSelfLoop = false;
     this.weight = parseFloat(text);
     if(isNaN(this.weight)){
       this.weight = 0;

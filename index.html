@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width">
     <title>repl.it</title>
     <link href="style.css" rel="stylesheet" type="text/css" />
-    
+    <link href="default.css" rel="stylesheet" type="text/css"/>
+    <script src="highlight.pack.js"></script>
+        <script>hljs.highlightAll();</script>
+
     <script>
       function resizeCanvas(){
         let new_width = parseFloat(window.getComputedStyle(homeHeader, null).getPropertyValue("width"));
@@ -29,14 +32,14 @@
         <div class="switch-widget">
           <table>
             <tr>
-              <td>fun</td>
+              <td>Example</td>
               <td>
                 <label class="switch">
                     <input id="switch" class="switchbox" type="checkbox">
                   <span class="slider round"></span>
                 </label>
               </td>
-              <td>documentation</td>
+              <td>Useage</td>
             </tr>
           </table>
         </div>
@@ -50,15 +53,22 @@
           <p>To <i>delete</i> a node or edge simply mouse over and press the <i>delete key</i></p>
         </div>
         <div class="docs">
-          <br>
-          <p>let graphobj = new <i>Graph</i>("canvasid", <i>fps</i>=60, <i>editable</i>=true, <i>buildable</i>=true)</p>
-          <br>
-          <p>let startNode = graphobj.node( <i>x_positon</i> , <i>y_position</i> , <i>radius</i> , <i>"text"</i>) // </p>
-          <br>
-          <p><i>//making connections</i></p>
-          <p>startNode.<i>connect</i>(<i>node</i>, <i>weight=0</i>)</p>
-          <p>startNode.<i>directional</i>(node, weight=0)</p>
-          <p>startNode.<i>biDirectional</i>(node, weight=0)</p>
+          <p><i>creating</i> a graph</p>
+          <pre>
+          <code class="javascript">
+let graphobj = new Graph("canvasid", fps=60, editable=true, buildable=true)          
+let startNode = graphobj.node( x_positon , y_position , radius , "text")
+          </code>
+          </pre>
+making <i>connections</i>
+          <pre>
+          <code class="javascript">
+startNode.connect(node, weight=0)
+startNode.directional(node, weight=0)
+startNode.biDirectional(node, weight=0)         
+          </code>
+          </pre>
+
           
         </div>
       </div>
@@ -75,14 +85,14 @@
         <div class="switch-widget">
           <table>
             <tr>
-              <td>fun</td>
+              <td>Example</td>
               <td>
                 <label class="switch">
                     <input id="switch" class="switchbox" type="checkbox">
                   <span class="slider round"></span>
                 </label>
               </td>
-              <td>documentation</td>
+              <td>Useage</td>
             </tr>
           </table>
         </div>
@@ -106,10 +116,17 @@
               <button id="reset_button">reset</button>
         </div>
         <div class="docs">
-          <p>graphInstance.<i>diijkstra</i>(startNode.<i>id</i>, endNode.<i>id</i>, <i>draw_path</i>=true)</p>
-          <p>graphInstance.<i>Astar</i>(startNode.id, endNode.id, draw_path=true)</p>
-          <p>graphInstance.<i>depthFirstSearch</i>(startNode.id, endNode.id, draw_true=true)</p>
-          <p>graphInstance.<i>breadthFirstSearch</i>(startNode.id, endNode.id, draw_path=true)</p>
+          <h3><i>Graphs.js</i> also has built in graph <i>search functions</i></h3>
+          <p>specify the start node id, the end node id, and weather you would like to draw a path</p>
+          <p>the function returns a list of <i>node objects</i> in the order they were traversed</p>
+          <pre>
+            <code class="javascript">
+graphInstance.diijkstra(startNode.id, endNode.id, draw_path=true)
+graphInstance.Astar(startNode.id, endNode.id, draw_path=true)
+graphInstance.depthFirstSearch(startNode.id, endNode.id, draw_true=true)
+graphInstance.breadthFirstSearch(startNode.id, endNode.id, draw_path=true)
+            </code>
+          </pre>
         </div>
       </div>
       <script>
@@ -217,14 +234,14 @@
         <div class="switch-widget">
           <table>
             <tr>
-              <td>fun</td>
+              <td>Example</td>
               <td>
                 <label class="switch">
                     <input id="switch" class="switchbox" type="checkbox">
                   <span class="slider round"></span>
                 </label>
               </td>
-              <td>documentation</td>
+              <td>Useage</td>
             </tr>
           </table>
         </div>
@@ -233,7 +250,12 @@
           <p>Go ahead and drag a new node onto the canvas</p>
         </div>
         <div class="docs">
-          <p>node.<i>setImage</i>("https://someimage.jpg")</p>
+          <p>simply specify the image you want on the node with the <i>setImage method</i></p>
+          <pre>
+            <code class="javascript">
+node.setImage("https://someimage.jpg")
+            </code>
+          </pre>
         </div>
       </div>
       <script>
@@ -257,14 +279,14 @@
         <div class="switch-widget">
           <table>
             <tr>
-              <td>fun</td>
+              <td>Example</td>
               <td>
                 <label class="switch">
                     <input id="switch" class="switchbox" type="checkbox">
                   <span class="slider round"></span>
                 </label>
               </td>
-              <td>documentation</td>
+              <td>Useage</td>
             </tr>
           </table>
         </div>
@@ -277,27 +299,45 @@
           <p>Meanwhile the <i>edge weight</i> is set to the <i>euclidean distance</i> between nodes</p>
         </div>
         <div class="docs">
+          
           <p>graph editor Library allows for callback hooks</p>
           <br>
-          <p>let g = new Graph("somecanvasid")</p>
-          <p>g.<i>setTickCallback</i>(function)</p>
-          <br>
+          <pre>
+          <code class="javascript">
+let g = new Graph("somecanvasid")
+g.setTickCallback(function)
+          </code>
+          </pre>
           <p style="margin-left:15px;">the tickCallback is called every frame</p>
           <p style="margin-left:15px;">and the callback is passed the entire graphInstance as an argument</p>
-          <p>g.<i>setNodeSetupCallback</i>(function)</p>
-          <br>
+          <pre>
+          <code class="javascript">
+g.setNodeSetupCallback(function)
+          
+          </code>
+          </pre>
           <p style="margin-left:15px;">the nodeSetupCallback is called everytime a new node is created either programatically or created by user</p>
           <p style="margin-left:15px;">nodeSetupCallback is passed just the created node as an argument</p>
-          <p>g.<i>setNodeCreatedCallback</i>(function)</p>
-          <br>
+          <pre>
+          <code class="javascript">
+g.setNodeCreatedCallback(function)
+          </code>
+          </pre>
           <p style="margin-left:15px;">the nodeCreatedCallback is only called when ui nodes are drawn in</p>
           <p style="margin-left:15px;">if nodeCreatedCallback is set and nodeSetupCallback is set both will be called</p>
           <p style="margin-left:15px;">nodeCreatedCallback is passed just the created node as an argument</p>
-          <p>g.<i>setConnectionSetupCallback</i>(function)</p>
-          <br>
+          <pre>
+          <code class="javascript">
+g.setConnectionSetupCallback(function)
+          </code>
+          </pre>
           <p style="margin-left:15px;">the ConnectionSetupCallback is called whenever a new connection is made programatically or by user</p>
           <p style="margin-left:15px;">the ConnectionSetupCallback is passed just the new edge created as an argument</p>
-          <p>g.<i>setConnectionCreatedCallback</i>(function)</p>
+          <pre>
+          <code class="javascript">
+g.setConnectionCreatedCallback(function)
+          </code>
+          </pre>
           <p style="margin-left:15px;">the connectionCreatedCallback is called only when a new connection is made through the UI</p>
           <p style="margin-left:15px;">the connectionCreatedCallback is passed just the new edge as an argument</p>
         </div>
@@ -423,5 +463,6 @@
       
     </script>
     </div>
+    
   </body>
 </html>
